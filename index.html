@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#122c29">
+  <meta name="description" content="気圧高度・外気温・重量からオートローテーションの計算条件を確認するツール。">
+  <title>Autorotation Calculator</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./calculator.js" defer></script>
+  <script src="./chart-data.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a href="./" class="brand"><span class="brand-icon" aria-hidden="true">✳</span> FLIGHT TOOLS</a><span class="edition">AUTOROTATION / 01</span></header>
+  <main>
+    <section class="intro"><p class="eyebrow">HELICOPTER PERFORMANCE</p><h1>Autorotation<br>Calculator<span>.</span></h1><p class="lead">飛行条件から、ローター回転数の許容範囲を。</p><p class="intro-note">気圧高度・外気温・重量を入力すると、計算結果を自動更新します。</p></section>
+    <div class="workspace">
+      <form id="conditions" class="panel inputs" novalidate>
+        <div class="section-heading"><h2><span>01</span> 飛行条件</h2><button type="reset">入力をクリア <span aria-hidden="true">↺</span></button></div>
+        <fieldset><legend>大気条件 <span>ATMOSPHERE</span></legend>
+          <div class="field"><label for="pressureAltitude">気圧高度 <small>Pressure Altitude</small></label><div class="input-wrap"><input id="pressureAltitude" name="pressureAltitude" type="number" step="any" min="-2000" max="20000" placeholder="例：3000" inputmode="decimal" aria-describedby="pressureAltitude-error"><span>ft</span></div><p id="pressureAltitude-error" class="error"></p></div>
+          <div class="field"><label for="oat">外気温度 <small>Outside Air Temperature</small></label><div class="input-wrap"><input id="oat" name="oat" type="number" step="any" min="-60" max="60" placeholder="例：20" inputmode="decimal" aria-describedby="oat-error"><span>°C</span></div><p id="oat-error" class="error"></p></div>
+        </fieldset>
+        <fieldset><legend>重量 <span>WEIGHT & LOAD</span></legend>
+          <div class="field"><label for="aircraftWeight">機体重量 <small>Aircraft Weight</small></label><div class="input-wrap"><input id="aircraftWeight" name="aircraftWeight" type="number" step="any" min="0" placeholder="例：1500" inputmode="decimal" aria-describedby="aircraftWeight-error weight-note"><span>lb</span></div><p id="aircraftWeight-error" class="error"></p></div>
+          <div class="field"><label for="crewWeight">搭乗員重量 <small>Crew Weight</small></label><div class="crew-row"><div class="input-wrap"><input id="crewWeight" name="crewWeight" type="number" step="any" min="0" placeholder="例：170" inputmode="decimal" aria-describedby="crewWeight-error"><span>lb</span></div><output id="crewKg" for="crewWeight" class="conversion">— kg</output></div><p id="crewWeight-error" class="error"></p></div>
+          <div class="field"><label for="fuelWeight">燃料重量 <small>Fuel Weight</small></label><div class="input-wrap"><input id="fuelWeight" name="fuelWeight" type="number" step="any" min="0" placeholder="例：200" inputmode="decimal" aria-describedby="fuelWeight-error"><span>lb</span></div><p id="fuelWeight-error" class="error"></p></div>
+          <p id="weight-note" class="hint">機体重量には、搭乗員・燃料を含めずに入力してください。</p>
+        </fieldset>
+      </form>
+      <section class="results" aria-labelledby="result-heading">
+        <div class="section-heading"><h2 id="result-heading"><span>02</span> 計算結果</h2><span class="live"><i></i> 自動更新</span></div>
+        <div aria-live="polite" aria-atomic="true">
+          <div class="metrics"><article class="metric"><h3>密度高度 <span>概算</span></h3><p><output id="densityAltitude">—</output><small>ft</small></p><div>DENSITY ALTITUDE</div></article><article class="metric"><h3>総重量</h3><p><output id="totalWeight">—</output><small>lb</small></p><div>GROSS WEIGHT</div></article></div>
+          <article class="rpm-card"><div class="rpm-top"><span>ROTOR SPEED</span><span id="chart-badge" class="badge">チャート未登録</span></div><h3>基準ローター回転数</h3><p class="rpm-value"><output id="referenceRpm">—</output><small>RPM</small></p><div class="range"><h3>許容範囲 <span>基準値 ±5 RPM</span></h3><p><output id="rpmRange">未算出</output><small>RPM</small></p></div><p id="chart-status" class="rpm-note">実チャートのデータが未登録のため、回転数は算出しません。</p></article>
+        </div>
+        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>実チャートの登録待ち</strong>密度高度と総重量は計算できます。回転数の算出には、対象機種の性能チャートが必要です。</p></div>
+      </section>
+    </div>
+    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>回転数は実チャートに基づく算出処理の登録後に表示します。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
+    <footer><span>AUTOROTATION CALCULATOR</span><span>Chart data pending · 基本計算版</span></footer>
+  </main>
+</body>
+</html>
