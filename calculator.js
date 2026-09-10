@@ -28,15 +28,26 @@
     return Number.isFinite(total) && total <= Number.MAX_SAFE_INTEGER ? total : null;
   }
   function rotorSpeed(point, provider) {
-    if (!provider || typeof provider.lookup !== 'function') return { status: 'unavailable' };
-    if (!Number.isFinite(point.densityAltitudeFt) || !Number.isFinite(point.grossWeightLb)) return { status: 'incomplete' };
+    // Canonical chart coordinates: original physical values, never rounded, shifted
+    // to sea level, or clipped to a boundary. Future renderers map this point to pixels.
+    const chartPoint = point && Number.isFinite(point.densityAltitudeFt)
+      && Number.isFinite(point.grossWeightLb) && point.grossWeightLb > 0
+      ? Object.freeze({ densityAltitudeFt: point.densityAltitudeFt, grossWeightLb: point.grossWeightLb }) : null;
+    let boundary = { status: 'unconfirmed' };
+    if (chartPoint && typeof provider?.checkBoundaries === 'function') {
+      try { boundary = provider.checkBoundaries(chartPoint) || { status: 'unconfirmed' }; }
+      catch { boundary = { status: 'unconfirmed' }; }
+    }
+    const finish = result => ({ ...result, point: chartPoint, boundary });
+    if (!provider || typeof provider.lookup !== 'function') return finish({ status: 'unavailable' });
+    if (!chartPoint) return finish({ status: 'incomplete' });
     try {
-      // Provider must enforce the actual chart boundary and must never extrapolate.
-      const result = provider.lookup(Object.freeze({ ...point }));
-      if (result?.status === 'out-of-range') return { status: 'out-of-range' };
-      if (result?.status !== 'ok' || !Number.isFinite(result.referenceRpm) || result.referenceRpm <= 5) return { status: 'error' };
-      return { status: 'ok', referenceRpm: result.referenceRpm, minRpm: result.referenceRpm - 5, maxRpm: result.referenceRpm + 5 };
-    } catch { return { status: 'error' }; }
+      // Data coverage limits interpolation; advisory boundaries do not.
+      const result = provider.lookup(chartPoint);
+      if (result?.status === 'out-of-range') return finish({ status: 'out-of-range' });
+      if (result?.status !== 'ok' || !Number.isFinite(result.referenceRpm) || result.referenceRpm <= 0) return finish({ status: 'error' });
+      return finish({ status: 'ok', referenceRpm: result.referenceRpm, minRpm: result.referenceRpm - 5, maxRpm: result.referenceRpm + 5 });
+    } catch { return finish({ status: 'error' }); }
   }
   root.AutorotationCalculator = Object.freeze({ parseInput, densityAltitude, totalWeight, rotorSpeed, lbToKg: lb => lb * 0.45359237 });
 })(globalThis);
