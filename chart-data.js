@@ -1,5 +1,6 @@
 /* User-supplied provisional digitization, not verified against the original.
- * Altitude validity and 332 MINIMUM / 335 / 385 MAXIMUM boundaries are unresolved.
+ * Altitude validity and 332 MINIMUM / 385 MAXIMUM boundaries are unresolved.
+ * 335 RPM is reserved for a future ordinary reference line; no data is supplied.
  * 385 and 390 below are reference lines, not operating limits.
  */
 (() => {
@@ -10,11 +11,50 @@
     [380, 2426], [385, 2474], [390, 2538]
   ].map(([rpm, weightAtZeroFtLb]) => Object.freeze({ rpm, weightAtZeroFtLb })));
   const weightShiftLbPer1000Ft = 56;
+  // Independent of lines and lookup: RPM labels are identifiers, not scalar limits.
+  // Register original chart coordinates and an evaluator together after verification.
+  // coordinates: chart-specific geometry, with densityAltitudeFt / grossWeightLb units.
+  // evaluate(point, coordinates): { status: 'ok', violated: boolean } or
+  // { status: 'unknown' } when the point cannot be assessed (e.g. outside coverage).
+  // The evaluator defines the forbidden side using the original chart. No geometry,
+  // boundary slope, interpolation method, or side is inferred here. On-boundary
+  // points should return violated: false; only strict crossings are violations.
+  const boundaries = Object.freeze({
+    minimum: Object.freeze({ label: '332 RPM MINIMUM', coordinates: null, evaluate: null }),
+    maximum: Object.freeze({ label: '385 RPM MAXIMUM', coordinates: null, evaluate: null })
+  });
+  function checkBoundaries(point, definitions = boundaries) {
+    const validPoint = point && Number.isFinite(point.densityAltitudeFt)
+      && Number.isFinite(point.grossWeightLb) && point.grossWeightLb > 0;
+    function check(kind) {
+      const definition = definitions?.[kind];
+      if (!validPoint) return { status: 'invalid-input' };
+      if (definition?.coordinates == null || typeof definition.evaluate !== 'function') return { status: 'unregistered' };
+      try {
+        const result = definition.evaluate(Object.freeze({
+          densityAltitudeFt: point.densityAltitudeFt, grossWeightLb: point.grossWeightLb
+        }), definition.coordinates);
+        if (result?.status === 'unknown') return { status: 'unknown' };
+        if (result?.status !== 'ok' || typeof result.violated !== 'boolean') return { status: 'error' };
+        if (!result.violated) return { status: 'within-boundary' };
+        return kind === 'minimum'
+          ? { status: 'below-minimum', message: 'MINIMUM未満' }
+          : { status: 'above-maximum', message: 'MAXIMUM超過' };
+      } catch { return { status: 'error' }; }
+    }
+    const minimum = check('minimum');
+    const maximum = check('maximum');
+    const violation = minimum.status === 'below-minimum' || maximum.status === 'above-maximum';
+    const confirmed = minimum.status === 'within-boundary' && maximum.status === 'within-boundary';
+    return { status: violation ? 'outside-boundaries' : confirmed ? 'within-boundaries' : 'unconfirmed', minimum, maximum };
+  }
   globalThis.AutorotationChart = Object.freeze({
     provisional: true,
     label: 'チャート画像からの暫定デジタイズ値・原典確認前',
     lines,
     weightShiftLbPer1000Ft,
+    boundaries,
+    checkBoundaries,
     lookup({ densityAltitudeFt, grossWeightLb }) {
       if (!Number.isFinite(densityAltitudeFt) || !Number.isFinite(grossWeightLb) || grossWeightLb <= 0) return { status: 'error' };
       // W(h) = W(0) - 56 * h / 1000. Convert to a zero-altitude equivalent.
