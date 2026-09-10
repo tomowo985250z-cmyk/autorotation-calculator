@@ -33,13 +33,13 @@
         <div class="section-heading"><h2 id="result-heading"><span>02</span> 計算結果</h2><span class="live"><i></i> 自動更新</span></div>
         <div aria-live="polite" aria-atomic="true">
           <div class="metrics"><article class="metric"><h3>密度高度 <span>概算</span></h3><p><output id="densityAltitude">—</output><small>ft</small></p><div>DENSITY ALTITUDE</div></article><article class="metric"><h3>総重量</h3><p><output id="totalWeight">—</output><small>lb</small></p><div>GROSS WEIGHT</div></article></div>
-          <article class="rpm-card"><div class="rpm-top"><span>ROTOR SPEED</span><span id="chart-badge" class="badge">チャート未登録</span></div><h3>基準ローター回転数</h3><p class="rpm-value"><output id="referenceRpm">—</output><small>RPM</small></p><div class="range"><h3>許容範囲 <span>基準値 ±5 RPM</span></h3><p><output id="rpmRange">未算出</output><small>RPM</small></p></div><p id="chart-status" class="rpm-note">実チャートのデータが未登録のため、回転数は算出しません。</p></article>
+          <article class="rpm-card"><div class="rpm-top"><span>ROTOR SPEED</span><span id="chart-badge" class="badge">暫定データ</span></div><h3>基準ローター回転数</h3><p class="rpm-value"><output id="referenceRpm">—</output><small>RPM</small></p><div class="range"><h3>許容範囲 <span>基準値 ±5 RPM</span></h3><p><output id="rpmRange">未算出</output><small>RPM</small></p></div><p id="chart-status" class="rpm-note">すべての項目に有効な値を入力してください。</p></article>
         </div>
-        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>実チャートの登録待ち</strong>密度高度と総重量は計算できます。回転数の算出には、対象機種の性能チャートが必要です。</p></div>
+        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>332 RPM MINIMUM・335 RPM・385 MAXIMUM境界は未確定・未実装です。表示範囲は基準値±5 RPMで、運用上の許容範囲を確認したものではありません。</p></div>
       </section>
     </div>
-    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>回転数は実チャートに基づく算出処理の登録後に表示します。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
-    <footer><span>AUTOROTATION CALCULATOR</span><span>Chart data pending · 基本計算版</span></footer>
+    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>回転数は340〜390 RPMの登録線間を線形補間します。同一RPM線は密度高度1,000 ft上昇につき総重量が56 lb減る暫定モデルです。登録線の外側には外挿しません。高度の適用範囲と運用境界は原典未確認です。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
+    <footer><span>AUTOROTATION CALCULATOR</span><span>Provisional chart data · 暫定計算版</span></footer>
   </main>
 </body>
 </html>
