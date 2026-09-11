@@ -8,6 +8,9 @@
   <title>Autorotation Calculator</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./calculator.js" defer></script>
+  <script src="./chart-view-config.js" defer></script>
+  <script src="./chart-view.js" defer></script>
+  <script src="./rpm-image-data.js" defer></script>
   <script src="./chart-data.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
@@ -35,10 +38,20 @@
           <div class="metrics"><article class="metric"><h3>密度高度 <span>概算</span></h3><p><output id="densityAltitude">—</output><small>ft</small></p><div>DENSITY ALTITUDE</div></article><article class="metric"><h3>総重量</h3><p><output id="totalWeight">—</output><small>lb</small></p><div>GROSS WEIGHT</div></article></div>
           <article class="rpm-card"><div class="rpm-top"><span>ROTOR SPEED</span><span id="chart-badge" class="badge">暫定データ</span></div><h3>基準ローター回転数</h3><p class="rpm-value"><output id="referenceRpm">—</output><small>RPM</small></p><div class="range"><h3>許容範囲 <span>基準値 ±5 RPM</span></h3><p><output id="rpmRange">未算出</output><small>RPM</small></p></div><p id="chart-status" class="rpm-note">すべての項目に有効な値を入力してください。</p><div class="range"><h3>警告・参考境界 <span>332 MIN / 385 MAX</span></h3><p id="boundary-status" class="rpm-note">入力待ち</p></div></article>
         </div>
-        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>335 RPMは通常線です。332 RPM MINIMUM・385 RPM MAXIMUMは通常線と別管理し、60 lb／1,000 ftの暫定境界モデルで判定します。境界判定は参考警告として別表示し、計算点・基準RPM・±5 RPMを変更しません。表示範囲は基準値±5 RPMで、運用上の許容範囲を確認したものではありません。</p></div>
+        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>実画像上の各RPM線を複数点で校正しています。332 RPM MINIMUM・385 RPM MAXIMUMは、同じ画像座標で参考境界として判定します。境界判定は参考警告として別表示し、計算点・基準RPM・±5 RPMを変更しません。表示範囲は基準値±5 RPMで、運用上の許容範囲を確認したものではありません。</p></div>
       </section>
     </div>
-    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>回転数は335〜390 RPMの通常線間を線形補間します。380〜390 RPM間も補間しますが、385 MAXIMUM境界は補間系列には含めません。同一の通常RPM線は密度高度1,000 ft上昇につき総重量が56 lb減る暫定モデルです。境界にはこの傾きを適用しません。暫定境界重量（lb）はMINIMUM = 1,947 − 0.060 × 密度高度（ft）、MAXIMUM = 2,483 − 0.060 × 密度高度（ft）です。境界値ちょうどは境界内とし、下限未満・上限超過は参考警告として別表示します。警告があっても計算可能なRPMと±5 RPMはそのまま表示します。登録線の外側には外挿しません。高度の適用範囲と運用境界は原典未確認です。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
+    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>赤点と同じ画像座標で、同じ高さの左右のRPM線を求め、その水平距離の比で補間します。各線は実画像で確認できた複数点の間だけを補間し、共通の傾きは仮定しません。332〜335間と380〜390間も補間します。385 MAXIMUM破線は警告境界で、RPM補間には380・390線を使います。332未満は対応するRPMデータがないため算出しません。境界値ちょうどは境界内とし、下限未満・上限超過は参考警告として別表示します。警告があっても計算可能なRPMと±5 RPMはそのまま表示します。登録線の外側には外挿しません。高度の適用範囲と運用境界は原典未確認です。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
+    <section class="panel chart-panel" aria-labelledby="chart-view-heading">
+      <div class="section-heading"><h2 id="chart-view-heading"><span>03</span> チャート上の計算点</h2></div>
+      <p class="hint">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
+      <div id="chart-frame" class="chart-frame" hidden>
+        <img id="performance-chart" alt="オートローテーション性能チャート" decoding="async">
+        <span id="chart-dot" class="chart-dot" aria-hidden="true" hidden></span>
+      </div>
+      <p id="chart-view-status" class="chart-view-status" role="status">チャート画像未登録・プロット領域未設定</p>
+      <p class="hint">チャート画像からの暫定デジタイズ値・原典確認前</p>
+    </section>
     <footer><span>AUTOROTATION CALCULATOR</span><span>Provisional chart data · 暫定計算版</span></footer>
   </main>
 </body>

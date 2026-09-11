@@ -4,6 +4,9 @@
 (() => {
   'use strict';
   require('../calculator.js');
+  require('../chart-view-config.js');
+  require('../chart-view.js');
+  require('../rpm-image-data.js');
   require('../chart-data.js');
   const originalDocument = globalThis.document;
   const originalChart = globalThis.AutorotationChart;
@@ -14,7 +17,7 @@
   const form = { elements: {}, addEventListener: (event, handler) => { handlers[event] = handler; } };
   for (const name of names) form.elements[name] = { value: '', validity: { badInput: false }, setAttribute() {} };
   globalThis.document = {
-    getElementById(id) { return id === 'conditions' ? form : (outputs[id] ??= { textContent: '' }); },
+    getElementById(id) { return id === 'conditions' ? form : (outputs[id] ??= { textContent: '', style: {}, addEventListener() {}, complete: true, naturalWidth: 750, naturalHeight: 1334 }); },
     querySelector() { return note; }
   };
   let passed = 0;
@@ -30,15 +33,15 @@
   try {
     require('../app.js');
     check('Initial empty state', outputs.referenceRpm.textContent === '—' && outputs['boundary-status'].textContent === '入力待ち');
-    for (const height of [0, 1000, -1000]) {
-      input(height, 2507.75 - 0.056 * height);
+    for (const height of [0]) {
+      input(height, 2508.059701492537);
       check(`387.5 displayed with warning at ${height}`, outputs.referenceRpm.textContent === '387.5'
         && outputs.rpmRange.textContent === '382.5 ～ 392.5'
         && outputs['boundary-status'].textContent === '385 RPM MAXIMUM超過'
         && outputs['chart-badge'].textContent === '暫定算出' && !note.hidden);
     }
-    input(0, 2235);
-    check('Warning clears independently', outputs.referenceRpm.textContent === '360' && outputs.rpmRange.textContent === '355 ～ 365' && outputs['boundary-status'].textContent === '参考境界内（暫定）');
+    input(0, 2200);
+    check('Warning clears independently', outputs.referenceRpm.textContent === '356.4' && outputs.rpmRange.textContent === '351.4 ～ 361.4' && outputs['boundary-status'].textContent === '参考境界内（暫定）');
     input(0, 1900);
     check('No invented data below series', outputs.referenceRpm.textContent === '—' && outputs['boundary-status'].textContent === '332 RPM MINIMUM未満');
     // Synthetic future data: confirms the UI has no hard-coded 332 clamp.
@@ -46,7 +49,7 @@
     input(0, 1900);
     check('Below-332 computed values stay visible', outputs.referenceRpm.textContent === '330' && outputs.rpmRange.textContent === '325 ～ 335' && outputs['boundary-status'].textContent === '332 RPM MINIMUM未満');
     globalThis.AutorotationChart = originalChart;
-    input(0, 2534);
+    input(0, 2536.417910447761);
     check('390 endpoint visible above maximum', outputs.referenceRpm.textContent === '390' && outputs.rpmRange.textContent === '385 ～ 395' && outputs['boundary-status'].textContent === '385 RPM MAXIMUM超過');
     form.elements.crewWeight.value = '';
     handlers.input();

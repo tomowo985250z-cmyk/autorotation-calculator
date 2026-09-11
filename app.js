@@ -2,6 +2,12 @@
   'use strict';
   const calculator = globalThis.AutorotationCalculator;
   const form = document.getElementById('conditions');
+  const chartView = globalThis.AutorotationChartView?.create({
+    image: document.getElementById('performance-chart'),
+    dot: document.getElementById('chart-dot'),
+    status: document.getElementById('chart-view-status'),
+    frame: document.getElementById('chart-frame')
+  }, globalThis.AutorotationChartViewConfig);
   const fields = ['pressureAltitude', 'oat', 'aircraftWeight', 'crewWeight', 'fuelWeight'];
   const format = value => new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 1 }).format(value);
   const display = (id, value) => { document.getElementById(id).textContent = value; };
@@ -22,14 +28,15 @@
     display('totalWeight', weight === null ? '—' : format(weight));
     if (weight === null && ['aircraftWeight', 'crewWeight', 'fuelWeight'].every(name => values[name] !== null)) display('fuelWeight-error', '総重量が計算可能な範囲を超えています。');
     const result = calculator.rotorSpeed({ densityAltitudeFt: density, grossWeightLb: weight }, globalThis.AutorotationChart);
+    chartView?.update(result.point);
     display('referenceRpm', result.status === 'ok' ? format(result.referenceRpm) : '—');
     display('rpmRange', result.status === 'ok' ? `${format(result.minRpm)} ～ ${format(result.maxRpm)}` : '未算出');
     const messages = {
       unavailable: ['チャート未登録', '実チャートのデータが未登録のため、回転数は算出しません。'],
       incomplete: ['入力待ち', 'すべての項目に有効な値を入力してください。'],
-      'out-of-range': ['補間データ範囲外', '登録された335〜390 RPM線の外側には外挿しません。計算点と参考境界の判定は保持します。'],
+      'out-of-range': ['補間データ範囲外', '画像上で確認できたRPM線の間だけを補間します。確認点の外側には外挿せず、計算点と参考境界の判定を保持します。'],
       error: ['算出エラー', 'チャートデータまたは算出処理を確認してください。'],
-      ok: ['暫定算出', '通常線からの基準値と±5 RPMです。参考境界を超えていても数値の制限・補正は行いません。']
+      ok: ['暫定算出', '赤点と同じ画像座標で左右のRPM線を補間した基準値と±5 RPMです。参考境界を超えても数値を制限・補正しません。']
     };
     display('chart-badge', messages[result.status][0]);
     display('chart-status', messages[result.status][1]);

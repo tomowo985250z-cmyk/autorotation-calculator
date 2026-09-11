@@ -44,9 +44,10 @@
     try {
       // Data coverage limits interpolation; advisory boundaries do not.
       const result = provider.lookup(chartPoint);
-      if (result?.status === 'out-of-range') return finish({ status: 'out-of-range' });
+      if (result?.status === 'out-of-range') return finish({ status: 'out-of-range', imagePoint: result.imagePoint });
       if (result?.status !== 'ok' || !Number.isFinite(result.referenceRpm) || result.referenceRpm <= 0) return finish({ status: 'error' });
-      return finish({ status: 'ok', referenceRpm: result.referenceRpm, minRpm: result.referenceRpm - 5, maxRpm: result.referenceRpm + 5 });
+      return finish({ status: 'ok', referenceRpm: result.referenceRpm, minRpm: result.referenceRpm - 5, maxRpm: result.referenceRpm + 5,
+        imagePoint: result.imagePoint, interpolation: result.interpolation });
     } catch { return finish({ status: 'error' }); }
   }
   root.AutorotationCalculator = Object.freeze({ parseInput, densityAltitude, totalWeight, rotorSpeed, lbToKg: lb => lb * 0.45359237 });
