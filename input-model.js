@@ -10,7 +10,8 @@
     fuelWeight: Object.freeze({ label: '残燃料', unit: 'lb', initial: 150, options: range(0, 500, 10) }),
     pressureAltitude: Object.freeze({ label: '気圧高度', unit: 'ft', initial: 2000, options: Object.freeze([2000, 1500, 1000]) })
   });
-  function create(calculator) {
+  const storageKey = 'autorotation-calculator.inputs.v1';
+  function create(calculator, storage = null) {
     let baseText, values, confirmed, editing;
     function reset() {
       baseText = '';
@@ -32,7 +33,31 @@
         densityAltitude: calculator.densityAltitude(values.pressureAltitude, values.oat) };
     }
     reset();
-    return Object.freeze({ snapshot, reset,
+    // Restore inputs only. Reject the entire record if any field is invalid.
+    try {
+      const saved = JSON.parse(storage?.getItem(storageKey) ?? 'null');
+      if (saved !== null) {
+        const keys = Object.keys(fields);
+        const basic = typeof saved.baseText === 'string' ? Number(saved.baseText) : NaN;
+        if (saved.version !== 1 || !Number.isFinite(basic) || basic < 0 || basic > Number.MAX_SAFE_INTEGER
+          || !saved.values || !saved.confirmed
+          || !keys.every(key => fields[key].options.includes(saved.values[key]))
+          || !['aircraftWeight', ...keys].every(key => typeof saved.confirmed[key] === 'boolean')
+          || calculator.totalWeight(basic, saved.values.crewWeight, saved.values.fuelWeight + saved.values.otherWeight) === null) throw Error('Invalid saved inputs');
+        baseText = saved.baseText;
+        values = Object.fromEntries(keys.map(key => [key, saved.values[key]]));
+        confirmed = Object.fromEntries(['aircraftWeight', ...keys].map(key => [key, saved.confirmed[key]]));
+      }
+    } catch { reset(); }
+    let lastSaved;
+    function save() {
+      try {
+        const json = JSON.stringify({ version:1, baseText, values, confirmed });
+        if (json !== lastSaved) { storage?.setItem(storageKey, json); lastSaved = json; }
+      } catch { /* Storage denied or full: keep the calculator usable in memory. */ }
+    }
+    save();
+    const actions = { reset,
       setBase(text) { baseText = String(text); confirmed.aircraftWeight = false; },
       confirmBase() {
         if (snapshot().error) return false;
@@ -55,7 +80,9 @@
       cancel() {
         if (editing) { values[editing.key] = editing.value; confirmed[editing.key] = editing.confirmed; editing = null; }
       }
-    });
+    };
+    return Object.freeze({ snapshot, ...Object.fromEntries(Object.entries(actions).map(([key, action]) =>
+      [key, (...args) => { const result = action(...args); save(); return result; }])) });
   }
-  globalThis.AutorotationInputs = Object.freeze({ fields, create });
+  globalThis.AutorotationInputs = Object.freeze({ fields, create, storageKey });
 })();

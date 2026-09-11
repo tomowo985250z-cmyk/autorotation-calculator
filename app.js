@@ -1,12 +1,16 @@
 (() => {
 'use strict';
 const get=id=>document.getElementById(id), calculator=globalThis.AutorotationCalculator;
-const {fields,create}=globalThis.AutorotationInputs, model=create(calculator);
+const {fields,create}=globalThis.AutorotationInputs;
+let storage=null;
+try { storage=globalThis.localStorage; } catch { /* Browser storage may be disabled. */ }
+const model=create(calculator,storage);
 const chartView=globalThis.AutorotationChartView.create({image:get('performance-chart'),dot:get('chart-dot'),status:get('chart-view-status'),frame:get('chart-frame')},globalThis.AutorotationChartViewConfig);
 const format=v=>new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(v);
 const crewKg=lb=>'（'+calculator.lbToKg(lb).toFixed(1)+' kg）';
 const display=(id,v)=>{get(id).textContent=v;};
 const dialog=get('wheel-dialog'),wheel=get('value-wheel'),base=get('aircraftWeight');
+base.value=model.snapshot().baseText;
 let active=null,selected=0;
 function render(){
  const s=model.snapshot();
