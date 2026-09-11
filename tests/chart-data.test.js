@@ -1,126 +1,88 @@
-/* Run with Node.js: node tests/chart-data.test.js
- * Boundary fixtures below are synthetic test data, never aircraft performance data.
- */
+/* node tests/chart-data.test.js — image-space calibration and regression checks. */
 (() => {
   'use strict';
   if (typeof require === 'function') {
-    require('../calculator.js');
-    require('../chart-data.js');
+    require('../calculator.js'); require('../chart-view-config.js'); require('../chart-view.js');
+    require('../rpm-image-data.js'); require('../chart-data.js');
   }
-  const calculator = globalThis.AutorotationCalculator;
-  const chart = globalThis.AutorotationChart;
-  let passed = 0;
-  function check(name, condition) {
-    if (!condition) throw new Error(name);
-    passed++;
-  }
-  // Original 46 regression cases updated for the re-digitized series and independent boundary warnings.
-  const expectedLines = [[335,2007],[340,2043],[345,2095],[350,2139],
-    [355,2187],[360,2235],[365,2282],[370,2332],[375,2380],[380,2429],[390,2534]];
-  for (const [rpm, weight] of expectedLines) {
-    for (const height of [0, 1000, 3000]) {
-      const result = calculator.rotorSpeed({ densityAltitudeFt: height, grossWeightLb: weight - 56 * height / 1000 }, chart);
-      check(`Reference ${rpm} RPM at ${height} ft`, result.status === 'ok' && Math.abs(result.referenceRpm - rpm) < 1e-9);
+  const c=globalThis.AutorotationCalculator, chart=globalThis.AutorotationChart;
+  const config=globalThis.AutorotationChartViewConfig;
+  let passed=0;
+  function check(name, ok) { if(!ok) throw Error(name); passed++; }
+  const near=(a,b)=>Math.abs(a-b)<1e-8;
+  function axisValue(pixel, ticks) {
+    for(let i=1;i<ticks.length;i++) {
+      const a=ticks[i-1],b=ticks[i];
+      if(pixel>=a.pixel && pixel<=b.pixel) return a.value+(pixel-a.pixel)/(b.pixel-a.pixel)*(b.value-a.value);
     }
+    throw Error('Outside image axis');
   }
-  for (let i = 1; i < expectedLines.length; i++) {
-    const [lowerRpm, lowerWeight] = expectedLines[i - 1];
-    const [upperRpm, upperWeight] = expectedLines[i];
-    const result = chart.lookup({ densityAltitudeFt: 1000, grossWeightLb: (lowerWeight + upperWeight) / 2 - 56 });
-    check(`Midpoint ${lowerRpm} / ${upperRpm}`, Math.abs(result.referenceRpm - (lowerRpm + upperRpm) / 2) < 1e-9);
-  }
-  check('No extrapolation below', chart.lookup({ densityAltitudeFt: 0, grossWeightLb: 2006 }).status === 'out-of-range');
-  check('No extrapolation above', chart.lookup({ densityAltitudeFt: 0, grossWeightLb: 2539 }).status === 'out-of-range');
-  check('Incomplete input', calculator.rotorSpeed({ densityAltitudeFt: null, grossWeightLb: 2200 }, chart).status === 'incomplete');
-  const regressionPassed = passed;
-
-  const point = { densityAltitudeFt: 0, grossWeightLb: 15 };
-  let result = chart.checkBoundaries(point);
-  check('Registered boundary takes priority', result.status === 'outside-boundaries' && result.minimum.status === 'below-minimum');
-  check('Only supplied anchors stored', chart.boundaries.minimum.coordinates.grossWeightLb === 1947 && chart.boundaries.maximum.coordinates.grossWeightLb === 2483 && chart.boundaries.minimum.coordinates.densityAltitudeFt === 0 && chart.boundaries.maximum.coordinates.densityAltitudeFt === 0);
-  check('Independent boundary labels', chart.boundaries.minimum.label === '332 RPM MINIMUM' && chart.boundaries.maximum.label === '385 RPM MAXIMUM');
-  check('335 is populated', chart.lines.some(line => line.rpm === 335 && line.weightAtZeroFtLb === 2007));
-  check('Original provisional state', chart.provisional && chart.label.includes('原典確認前'));
-  // Artificial thresholds test evaluator wiring, not any proposed real boundary.
-  const fixtures = {
-    minimum: { coordinates: { threshold: 10 }, evaluate: (p, data) => ({ status: 'ok', violated: p.grossWeightLb < data.threshold }) },
-    maximum: { coordinates: { threshold: 20 }, evaluate: (p, data) => ({ status: 'ok', violated: p.grossWeightLb > data.threshold }) }
-  };
-  check('Inside both registered boundaries', chart.checkBoundaries(point, fixtures).status === 'within-boundaries');
-  result = chart.checkBoundaries({ ...point, grossWeightLb: 9 }, fixtures);
-  check('Below minimum', result.status === 'outside-boundaries' && result.minimum.message === '332 RPM MINIMUM未満');
-  result = chart.checkBoundaries({ ...point, grossWeightLb: 21 }, fixtures);
-  check('Above maximum', result.status === 'outside-boundaries' && result.maximum.message === '385 RPM MAXIMUM超過');
-  check('Minimum equality allowed', chart.checkBoundaries({ ...point, grossWeightLb: 10 }, fixtures).status === 'within-boundaries');
-  check('Maximum equality allowed', chart.checkBoundaries({ ...point, grossWeightLb: 20 }, fixtures).status === 'within-boundaries');
-  check('Partial registration is not confirmed', chart.checkBoundaries(point, { minimum: fixtures.minimum }).status === 'unconfirmed');
-  const unavailable = { ...fixtures, minimum: { coordinates: {}, evaluate: () => ({ status: 'unknown' }) } };
-  check('Outside evaluator coverage is unknown', chart.checkBoundaries(point, unavailable).status === 'unconfirmed');
-  const broken = { ...fixtures, minimum: { coordinates: {}, evaluate: () => { throw new Error('fixture'); } } };
-  check('Exceptions do not imply within limits', chart.checkBoundaries(point, broken).minimum.status === 'error');
-  const malformed = { ...fixtures, minimum: { coordinates: {}, evaluate: () => ({ status: 'ok', violated: 'false' }) } };
-  check('Invalid result rejected', chart.checkBoundaries(point, malformed).minimum.status === 'error');
-  check('Invalid input rejected', chart.checkBoundaries({ ...point, densityAltitudeFt: NaN }, fixtures).minimum.status === 'invalid-input');
-  check('Null input rejected', chart.checkBoundaries(null, fixtures).status === 'unconfirmed');
-  check('Boundary testing never installs fixtures', chart.boundaries.minimum.coordinates.grossWeightLb === 1947 && chart.checkBoundaries(point).status === 'outside-boundaries');
-  const rpm = calculator.rotorSpeed({ densityAltitudeFt: 2000, grossWeightLb: 2394 }, chart);
-  check('Warning retains RPM and ±5', rpm.status === 'ok' && rpm.referenceRpm > 385 && rpm.minRpm === rpm.referenceRpm - 5 && rpm.maxRpm === rpm.referenceRpm + 5 && rpm.boundary.maximum.status === 'above-maximum');
-  check('Exact ordinary data', JSON.stringify(chart.lines.map(line => [line.rpm, line.weightAtZeroFtLb])) === JSON.stringify(expectedLines));
-  check('No ordinary 385 line', !chart.lines.some(line => line.rpm === 385));
-  check('Separate boundary slopes', chart.boundaries.minimum.altitudeData.weightDecreaseLbPerFt === 0.060 && chart.boundaries.maximum.altitudeData.weightDecreaseLbPerFt === 0.060 && chart.weightShiftLbPer1000Ft === 56);
-  for (const height of [-1000, 0, 1000, 3000]) {
-    for (const weightAtZero of [2429.1, 2481.5, 2483, 2484, 2534, 2600]) {
-      const result = calculator.rotorSpeed({ densityAltitudeFt: height, grossWeightLb: weightAtZero - 56 * height / 1000 }, chart);
-      check(`Independent upper interpolation ${height}/${weightAtZero}`, result.status === (weightAtZero > 2534 ? 'out-of-range' : 'ok') && result.boundary.status === (weightAtZero + 0.004 * height > 2483 ? 'outside-boundaries' : 'within-boundaries'));
+  function physical(x,y) { return {grossWeightLb:axisValue(x,config.axes.grossWeightLb.ticks),densityAltitudeFt:axisValue(y,config.axes.densityAltitudeFt.ticks)}; }
+  check('Density sea level',c.densityAltitude(0,15)===0);
+  check('Density uses OAT and pressure altitude',near(c.densityAltitude(3000,20),4312.8));
+  check('Total weight unchanged',c.totalWeight(1800,170,200)===2170);
+  check('Kg unchanged',near(c.lbToKg(170),77.1107029));
+  check('No guessed ordinary 385',!chart.lines.some(line=>line.rpm===385));
+  check('332 and 385 separate boundaries',chart.boundaries.minimum.rpm===332 && chart.boundaries.maximum.rpm===385);
+  const all=[...chart.references,chart.boundaries.maximum];
+  check('13 image lines',all.length===13);
+  for(const line of all) {
+    check('Multiple observed points '+line.rpm,line.points.length>=10);
+    for(const p of line.points) {
+      check('Measured knot '+line.rpm+'/'+p.y,near(chart.lineXAtY(line,p.y),p.x));
+      if(line.rpm!==385) {
+        const result=c.rotorSpeed(physical(p.x,p.y),chart);
+        check('Exact line RPM '+line.rpm+'/'+p.y,result.status==='ok'&&near(result.referenceRpm,line.rpm));
+      }
     }
-    check(`Boundary uses independent slope at ${height}`, chart.checkBoundaries({ densityAltitudeFt: height, grossWeightLb: 2483 - 56 * height / 1000 }).status === (height > 0 ? 'outside-boundaries' : 'within-boundaries'));
+    check('No upper extrapolation '+line.rpm,chart.lineXAtY(line,line.points[0].y-1)===null);
+    check('No lower extrapolation '+line.rpm,chart.lineXAtY(line,line.points.at(-1).y+1)===null);
   }
-  const ordinary = calculator.rotorSpeed({ densityAltitudeFt: 1000, grossWeightLb: 1969 }, chart);
-  check('335–340 midpoint and ±5', ordinary.referenceRpm === 337.5 && ordinary.minRpm === 332.5 && ordinary.maxRpm === 342.5);
-  // Independent literal expectations for 0 / +1000 / -1000 ft, at and ±1 lb.
-  for (const [height, minimum, maximum] of [[0, 1947, 2483], [1000, 1887, 2423], [-1000, 2007, 2543]]) {
-    for (const [kind, boundary] of [['minimum', minimum], ['maximum', maximum]]) {
-      for (const delta of [-1, 0, 1]) {
-        const point = { densityAltitudeFt: height, grossWeightLb: boundary + delta };
-        const violation = kind === 'minimum' && delta < 0 ? 'below-minimum'
-          : kind === 'maximum' && delta > 0 ? 'above-maximum' : null;
-        const checked = chart.checkBoundaries(point);
-        check(`Boundary ${kind} ${height} ft ${delta} lb`, violation
-          ? checked.status === 'outside-boundaries' && checked[kind].status === violation
-          : checked.status === 'within-boundaries');
-        const calculated = calculator.rotorSpeed(point, chart);
-        check(`Independent RPM and unchanged point ${kind} ${height} ft ${delta} lb`,
-          calculated.status === (kind === 'minimum' ? 'out-of-range' : 'ok')
-          && calculated.point.densityAltitudeFt === height && calculated.point.grossWeightLb === boundary + delta);
+  // Independent image rows not used as calibration knots.
+  const holdouts=[[332,200,110.5],[335,200,134],[340,200,164.5],[345,200,197],[350,200,228],[355,200,264.5],[360,200,295.5],[365,200,326],[375,200,389.5],[380,200,429],[390,200,490.5],[335,360,175],[340,360,203.5],[345,360,238.5],[350,360,269],[355,360,305],[360,360,336],[365,360,368.5],[370,360,403.5],[375,360,434],[380,360,470],[385,360,500.5],[390,360,535],[335,860,320],[340,860,344],[345,860,382],[350,860,411],[355,860,443.5],[360,860,477.5],[370,860,543.5],[380,860,611.5],[390,860,688],[335,1080,387.5],[340,1080,409.5],[345,1080,448],[350,1080,477],[360,1080,541],[365,1080,572.5],[370,1080,606.5],[375,1080,641.5],[380,1080,675.5]];
+  let maxError=0;
+  for(const [rpm,y,x] of holdouts) {
+    const error=Math.abs(chart.lineXAtY(all.find(line=>line.rpm===rpm),y)-x);
+    maxError=Math.max(maxError,error);
+    check('Held-out observed pixel '+rpm+'/'+y,error<=1.5);
+  }
+  const reference=c.rotorSpeed({grossWeightLb:2200,densityAltitudeFt:0},chart);
+  check('Requested point',reference.imagePoint.x===437.5&&reference.imagePoint.y===803);
+  check('Requested bracket',reference.interpolation.leftRpm===355&&reference.interpolation.rightRpm===360&&near(reference.interpolation.leftX,427.75)&&near(reference.interpolation.rightX,461.4));
+  check('Requested fraction',near(reference.interpolation.fraction,9.75/33.65));
+  check('Requested RPM',near(reference.referenceRpm,356.4487369985141));
+  for(const y of [240,420,803,900]) {
+    for(let i=1;i<chart.references.length;i++) {
+      const left=chart.references[i-1],right=chart.references[i];
+      const a=chart.lineXAtY(left,y),b=chart.lineXAtY(right,y);
+      const p=physical((a+b)/2,y), result=c.rotorSpeed(p,chart);
+      check('Adjacent midpoint '+left.rpm+'/'+right.rpm+'/'+y,near(result.referenceRpm,(left.rpm+right.rpm)/2));
+      check('Unclipped ±5 '+y+'/'+i,near(result.minRpm,result.referenceRpm-5)&&near(result.maxRpm,result.referenceRpm+5));
+      check('Same dot coordinate '+y+'/'+i,near(result.imagePoint.x,(a+b)/2)&&near(result.imagePoint.y,y)&&result.point.grossWeightLb===p.grossWeightLb&&result.point.densityAltitudeFt===p.densityAltitudeFt);
+    }
+    for(const [kind,line] of Object.entries(chart.boundaries)) {
+      const x=chart.lineXAtY(line,y);
+      for(const delta of [-1,0,1]) {
+        const result=c.rotorSpeed(physical(x+delta,y),chart);
+        const expected=kind==='minimum'&&delta<0?'below-minimum':kind==='maximum'&&delta>0?'above-maximum':'within-boundary';
+        check('Boundary '+kind+'/'+delta+'/'+y,result.boundary[kind].status===expected);
+        check('Warnings independent '+kind+'/'+delta+'/'+y,result.status===(kind==='minimum'&&delta<0?'out-of-range':'ok'));
       }
     }
   }
-  for (const height of [0, 1000, -1000]) {
-    const point = { densityAltitudeFt: height, grossWeightLb: 2507.75 - 0.056 * height };
-    const result = calculator.rotorSpeed(point, chart);
-    check(`387.5 above MAXIMUM at ${height}`, result.status === 'ok' && result.referenceRpm === 387.5 && result.minRpm === 382.5 && result.maxRpm === 392.5 && result.boundary.maximum.status === 'above-maximum');
-  }
-  const precise = { densityAltitudeFt: 1234.56789, grossWeightLb: 2438.7654321 };
-  const saved = calculator.rotorSpeed(precise, chart);
-  check('Immutable unrounded point', Object.isFrozen(saved.point) && saved.point !== precise && saved.point.densityAltitudeFt === precise.densityAltitudeFt && saved.point.grossWeightLb === precise.grossWeightLb);
-  precise.grossWeightLb = 1;
-  check('Caller edits do not move dot', saved.point.grossWeightLb === 2438.7654321);
-  const restored = JSON.parse(JSON.stringify(saved));
-  check('Serializable chart coordinates', restored.point.densityAltitudeFt === saved.point.densityAltitudeFt && restored.point.grossWeightLb === saved.point.grossWeightLb);
-  check('No stale point for incomplete input', calculator.rotorSpeed({ densityAltitudeFt: null, grossWeightLb: 2300 }, chart).point === null);
-  const noData = calculator.rotorSpeed({ densityAltitudeFt: -1000.125, grossWeightLb: 1000.375 }, chart);
-  check('Out-of-data point and warning retained', noData.status === 'out-of-range' && noData.point.densityAltitudeFt === -1000.125 && noData.point.grossWeightLb === 1000.375 && noData.boundary.minimum.status === 'below-minimum');
-  // Synthetic provider tests future below-332 support, without inventing real data.
-  const low = calculator.rotorSpeed({ densityAltitudeFt: 0, grossWeightLb: 1900 }, {
-    checkBoundaries: chart.checkBoundaries, lookup: () => ({ status: 'ok', referenceRpm: 330 })
-  });
-  check('Future below-332 data is not clipped', low.referenceRpm === 330 && low.minRpm === 325 && low.maxRpm === 335 && low.boundary.minimum.status === 'below-minimum');
-  const missing = calculator.rotorSpeed({ densityAltitudeFt: 0, grossWeightLb: 2507.75 }, { lookup: chart.lookup });
-  check('Missing boundaries do not block RPM', missing.referenceRpm === 387.5 && missing.boundary.status === 'unconfirmed');
-  const failed = calculator.rotorSpeed({ densityAltitudeFt: 0, grossWeightLb: 2507.75 }, {
-    lookup: chart.lookup, checkBoundaries: () => { throw new Error('synthetic failure'); }
-  });
-  check('Boundary error does not block RPM', failed.referenceRpm === 387.5 && failed.boundary.status === 'unconfirmed');
-  globalThis.AutorotationTestResults = { regressionPassed, boundaryPassed: passed - regressionPassed, totalPassed: passed };
-  if (typeof console !== 'undefined') console.log(globalThis.AutorotationTestResults);
+  const beyond=c.rotorSpeed(physical(651.9,803),chart);
+  check('387.5 survives MAXIMUM',near(beyond.referenceRpm,387.5)&&near(beyond.minRpm,382.5)&&near(beyond.maxRpm,392.5)&&beyond.boundary.maximum.status==='above-maximum');
+  const maxX=chart.lineXAtY(chart.boundaries.maximum,803),onMax=c.rotorSpeed(physical(maxX,803),chart);
+  check('385 warning line does not force scalar 385',Math.abs(onMax.referenceRpm-385)>0.1&&onMax.interpolation.leftRpm===380&&onMax.interpolation.rightRpm===390);
+  check('Image edge not extrapolated',c.rotorSpeed({grossWeightLb:2200,densityAltitudeFt:5000},chart).status==='out-of-range');
+  check('Outside chart not extrapolated',c.rotorSpeed({grossWeightLb:2601,densityAltitudeFt:0},chart).status==='out-of-range');
+  const precise={grossWeightLb:2200.123456789,densityAltitudeFt:123.456789};
+  const result=c.rotorSpeed(precise,chart),direct=globalThis.AutorotationChartView.project(precise,config);
+  check('Dot and lookup share transform',near(result.imagePoint.x,direct.leftPercent/100*750)&&near(result.imagePoint.y,direct.topPercent/100*1334));
+  check('Raw point frozen',Object.isFrozen(result.point)&&result.point.grossWeightLb===precise.grossWeightLb&&result.point.densityAltitudeFt===precise.densityAltitudeFt);
+  check('Incomplete point',c.rotorSpeed({densityAltitudeFt:null,grossWeightLb:2200},chart).point===null);
+  const synthetic=c.rotorSpeed({grossWeightLb:1900,densityAltitudeFt:0},{lookup:()=>({status:'ok',referenceRpm:330}),checkBoundaries:chart.checkBoundaries});
+  check('Future below332 unclipped',synthetic.referenceRpm===330&&synthetic.minRpm===325&&synthetic.maxRpm===335);
+  globalThis.AutorotationTestResults={passed,holdoutPoints:holdouts.length,maxPixelError:maxError};
+  if(typeof console!=='undefined')console.log(globalThis.AutorotationTestResults);
 })();

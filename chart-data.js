@@ -1,93 +1,68 @@
-/* User-supplied provisional digitization, not verified against the original.
- * Boundary slopes are provisional user-supplied data; altitude validity is unverified.
- * 335 is an ordinary reference line. 385 MAXIMUM is only a boundary.
- * 380–390 interpolation is independent of the advisory MAXIMUM boundary.
+/* Image-space RPM interpolation. Uses exactly the same project() as the red dot.
+ * 332 is a measured lower reference as well as an advisory minimum.
+ * 385 MAXIMUM is warning-only; RPM interpolation goes directly from 380 to 390.
  */
 (() => {
   'use strict';
-  const lines = Object.freeze([
-    [335, 2007], [340, 2043], [345, 2095], [350, 2139],
-    [355, 2187], [360, 2235], [365, 2282], [370, 2332],
-    [375, 2380], [380, 2429], [390, 2534]
-  ].map(([rpm, weightAtZeroFtLb]) => Object.freeze({ rpm, weightAtZeroFtLb })));
-  const weightShiftLbPer1000Ft = 56;
-  function boundaryEvaluator(kind) {
-    return (point, coordinates, altitudeData) => {
-      const boundaryWeightLb = coordinates.grossWeightLb
-        - altitudeData.weightDecreaseLbPerFt * (point.densityAltitudeFt - coordinates.densityAltitudeFt);
-      if (!Number.isFinite(boundaryWeightLb)) return { status: 'unknown' };
-      return { status: 'ok', violated: kind === 'minimum'
-        ? point.grossWeightLb < boundaryWeightLb : point.grossWeightLb > boundaryWeightLb };
-    };
-  }
-  // Independent of lines and lookup: RPM labels are identifiers, not scalar limits.
-  // Register original chart coordinates and an evaluator together after verification.
-  // coordinates: chart-specific geometry, with densityAltitudeFt / grossWeightLb units.
-  // evaluate(point, coordinates, altitudeData): { status: 'ok', violated: boolean } or
-  // { status: 'unknown' } when the point cannot be assessed (e.g. outside coverage).
-  // The evaluator defines the forbidden side using the original chart. No geometry,
-  // boundary slope, interpolation method, or side is inferred here. On-boundary
-  // points should return violated: false; only strict crossings are violations.
-  const boundaries = Object.freeze({
-    minimum: Object.freeze({
-      label: '332 RPM MINIMUM', provisional: true,
-      coordinates: Object.freeze({ densityAltitudeFt: 0, grossWeightLb: 1947 }),
-      altitudeData: Object.freeze({ weightDecreaseLbPerFt: 0.060 }), evaluate: boundaryEvaluator('minimum')
-    }),
-    maximum: Object.freeze({
-      label: '385 RPM MAXIMUM', provisional: true,
-      coordinates: Object.freeze({ densityAltitudeFt: 0, grossWeightLb: 2483 }),
-      altitudeData: Object.freeze({ weightDecreaseLbPerFt: 0.060 }), evaluate: boundaryEvaluator('maximum')
-    })
-  });
-  function checkBoundaries(point, definitions = boundaries) {
-    const validPoint = point && Number.isFinite(point.densityAltitudeFt)
-      && Number.isFinite(point.grossWeightLb) && point.grossWeightLb > 0;
-    function check(kind) {
-      const definition = definitions?.[kind];
-      if (!validPoint) return { status: 'invalid-input' };
-      if (definition?.coordinates == null || typeof definition.evaluate !== 'function') return { status: 'unregistered' };
-      try {
-        const result = definition.evaluate(Object.freeze({
-          densityAltitudeFt: point.densityAltitudeFt, grossWeightLb: point.grossWeightLb
-        }), definition.coordinates, definition.altitudeData);
-        if (result?.status === 'unknown') return { status: 'unknown' };
-        if (result?.status !== 'ok' || typeof result.violated !== 'boolean') return { status: 'error' };
-        if (!result.violated) return { status: 'within-boundary' };
-        return kind === 'minimum'
-          ? { status: 'below-minimum', message: '332 RPM MINIMUM未満' }
-          : { status: 'above-maximum', message: '385 RPM MAXIMUM超過' };
-      } catch { return { status: 'error' }; }
+  const data = globalThis.AutorotationRpmImageData;
+  const references = Object.freeze([data.minimum, ...data.ordinary]);
+  function lineXAtY(line, y) {
+    if (!Number.isFinite(y) || !line?.points?.length) return null;
+    const points = line.points;
+    if (Math.abs(y - points[0].y) < 1e-9) return points[0].x;
+    if (Math.abs(y - points[points.length - 1].y) < 1e-9) return points[points.length - 1].x;
+    if (y < points[0].y || y > points[points.length - 1].y) return null;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      if (y <= b.y) return a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x);
     }
-    const minimum = check('minimum');
-    const maximum = check('maximum');
-    const violation = minimum.status === 'below-minimum' || maximum.status === 'above-maximum';
-    const confirmed = minimum.status === 'within-boundary' && maximum.status === 'within-boundary';
-    return { status: violation ? 'outside-boundaries' : confirmed ? 'within-boundaries' : 'unconfirmed', minimum, maximum };
+    return null;
+  }
+  function imagePointFor(point) {
+    const config = globalThis.AutorotationChartViewConfig;
+    if (config?.image?.width !== data.width || config?.image?.height !== data.height) return null;
+    const projected = globalThis.AutorotationChartView?.project(point, config);
+    if (projected?.status !== 'ok') return null;
+    return Object.freeze({ x: projected.leftPercent / 100 * data.width, y: projected.topPercent / 100 * data.height });
+  }
+  function checkBoundaries(point) {
+    const imagePoint = imagePointFor(point);
+    function check(line, kind) {
+      if (!imagePoint) return { status: 'unknown' };
+      const x = lineXAtY(line, imagePoint.y);
+      if (x === null) return { status: 'unknown' };
+      // Only numerical roundoff tolerance, far below the image reading precision.
+      const delta = imagePoint.x - x;
+      const violated = kind === 'minimum' ? delta < -1e-9 : delta > 1e-9;
+      if (!violated) return { status: 'within-boundary', x };
+      return kind === 'minimum'
+        ? { status: 'below-minimum', message: '332 RPM MINIMUM未満', x }
+        : { status: 'above-maximum', message: '385 RPM MAXIMUM超過', x };
+    }
+    const minimum = check(data.minimum, 'minimum'), maximum = check(data.maximum, 'maximum');
+    const outside = minimum.status === 'below-minimum' || maximum.status === 'above-maximum';
+    const inside = minimum.status === 'within-boundary' && maximum.status === 'within-boundary';
+    return { status: outside ? 'outside-boundaries' : inside ? 'within-boundaries' : 'unconfirmed', minimum, maximum, imagePoint };
+  }
+  function lookup(point) {
+    const imagePoint = imagePointFor(point);
+    if (!imagePoint) return { status: 'out-of-range' };
+    const { x, y } = imagePoint;
+    // Never bridge a missing reference line or extrapolate beyond measured y spans.
+    for (let i = 1; i < references.length; i++) {
+      const left = references[i - 1], right = references[i];
+      const leftX = lineXAtY(left, y), rightX = lineXAtY(right, y);
+      if (leftX === null || rightX === null || rightX <= leftX) continue;
+      if (x < leftX - 1e-9 || x > rightX + 1e-9) continue;
+      const fraction = (x - leftX) / (rightX - leftX);
+      return { status: 'ok', referenceRpm: left.rpm + fraction * (right.rpm - left.rpm), imagePoint,
+        interpolation: Object.freeze({ leftRpm: left.rpm, rightRpm: right.rpm, leftX, rightX, fraction }) };
+    }
+    return { status: 'out-of-range', imagePoint };
   }
   globalThis.AutorotationChart = Object.freeze({
-    provisional: true,
-    label: 'チャート画像からの暫定デジタイズ値・原典確認前',
-    lines,
-    weightShiftLbPer1000Ft,
-    boundaries,
-    checkBoundaries,
-    lookup({ densityAltitudeFt, grossWeightLb }) {
-      if (!Number.isFinite(densityAltitudeFt) || !Number.isFinite(grossWeightLb) || grossWeightLb <= 0) return { status: 'error' };
-      // Advisory boundaries must never move the input point or suppress interpolation.
-      // W(h) = W(0) - 56 * h / 1000. Convert to a zero-altitude equivalent.
-      const equivalentWeight = grossWeightLb + weightShiftLbPer1000Ft * densityAltitudeFt / 1000;
-      if (!Number.isFinite(equivalentWeight)) return { status: 'error' };
-      if (equivalentWeight < lines[0].weightAtZeroFtLb || equivalentWeight > lines[lines.length - 1].weightAtZeroFtLb) return { status: 'out-of-range' };
-      for (let i = 1; i < lines.length; i++) {
-        const lower = lines[i - 1];
-        const upper = lines[i];
-        if (equivalentWeight <= upper.weightAtZeroFtLb) {
-          const fraction = (equivalentWeight - lower.weightAtZeroFtLb) / (upper.weightAtZeroFtLb - lower.weightAtZeroFtLb);
-          return { status: 'ok', referenceRpm: lower.rpm + fraction * (upper.rpm - lower.rpm) };
-        }
-      }
-      return { status: 'error' };
-    }
+    provisional: true, label: 'チャート画像からの暫定デジタイズ値・原典確認前',
+    lines: data.ordinary, boundaries: Object.freeze({ minimum: data.minimum, maximum: data.maximum }),
+    references, lineXAtY, imagePointFor, checkBoundaries, lookup
   });
 })();
