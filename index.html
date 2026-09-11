@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#122c29">
-  <meta name="description" content="気圧高度・外気温・重量からオートローテーションの計算条件を確認するツール。">
+  <meta name="theme-color" content="#163b33">
   <title>Autorotation Calculator</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./calculator.js" defer></script>
@@ -12,47 +11,65 @@
   <script src="./chart-view.js" defer></script>
   <script src="./rpm-image-data.js" defer></script>
   <script src="./chart-data.js" defer></script>
+  <script src="./input-model.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
-  <header class="topbar"><a href="./" class="brand"><span class="brand-icon" aria-hidden="true">✳</span> FLIGHT TOOLS</a><span class="edition">AUTOROTATION / 01</span></header>
+  <header class="topbar"><span class="brand-mark" aria-hidden="true">✳</span><h1>Autorotation Calculator</h1></header>
   <main>
-    <section class="intro"><p class="eyebrow">HELICOPTER PERFORMANCE</p><h1>Autorotation<br>Calculator<span>.</span></h1><p class="lead">飛行条件から、ローター回転数の許容範囲を。</p><p class="intro-note">気圧高度・外気温・重量を入力すると、計算結果を自動更新します。</p></section>
-    <div class="workspace">
-      <form id="conditions" class="panel inputs" novalidate>
-        <div class="section-heading"><h2><span>01</span> 飛行条件</h2><button type="reset">入力をクリア <span aria-hidden="true">↺</span></button></div>
-        <fieldset><legend>大気条件 <span>ATMOSPHERE</span></legend>
-          <div class="field"><label for="pressureAltitude">気圧高度 <small>Pressure Altitude</small></label><div class="input-wrap"><input id="pressureAltitude" name="pressureAltitude" type="number" step="any" min="-2000" max="20000" placeholder="例：3000" inputmode="decimal" aria-describedby="pressureAltitude-error"><span>ft</span></div><p id="pressureAltitude-error" class="error"></p></div>
-          <div class="field"><label for="oat">外気温度 <small>Outside Air Temperature</small></label><div class="input-wrap"><input id="oat" name="oat" type="number" step="any" min="-60" max="60" placeholder="例：20" inputmode="decimal" aria-describedby="oat-error"><span>°C</span></div><p id="oat-error" class="error"></p></div>
-        </fieldset>
-        <fieldset><legend>重量 <span>WEIGHT & LOAD</span></legend>
-          <div class="field"><label for="aircraftWeight">機体重量 <small>Aircraft Weight</small></label><div class="input-wrap"><input id="aircraftWeight" name="aircraftWeight" type="number" step="any" min="0" placeholder="例：1500" inputmode="decimal" aria-describedby="aircraftWeight-error weight-note"><span>lb</span></div><p id="aircraftWeight-error" class="error"></p></div>
-          <div class="field"><label for="crewWeight">搭乗員重量 <small>Crew Weight</small></label><div class="crew-row"><div class="input-wrap"><input id="crewWeight" name="crewWeight" type="number" step="any" min="0" placeholder="例：170" inputmode="decimal" aria-describedby="crewWeight-error"><span>lb</span></div><output id="crewKg" for="crewWeight" class="conversion">— kg</output></div><p id="crewWeight-error" class="error"></p></div>
-          <div class="field"><label for="fuelWeight">燃料重量 <small>Fuel Weight</small></label><div class="input-wrap"><input id="fuelWeight" name="fuelWeight" type="number" step="any" min="0" placeholder="例：200" inputmode="decimal" aria-describedby="fuelWeight-error"><span>lb</span></div><p id="fuelWeight-error" class="error"></p></div>
-          <p id="weight-note" class="hint">機体重量には、搭乗員・燃料を含めずに入力してください。</p>
-        </fieldset>
-      </form>
-      <section class="results" aria-labelledby="result-heading">
-        <div class="section-heading"><h2 id="result-heading"><span>02</span> 計算結果</h2><span class="live"><i></i> 自動更新</span></div>
-        <div aria-live="polite" aria-atomic="true">
-          <div class="metrics"><article class="metric"><h3>密度高度 <span>概算</span></h3><p><output id="densityAltitude">—</output><small>ft</small></p><div>DENSITY ALTITUDE</div></article><article class="metric"><h3>総重量</h3><p><output id="totalWeight">—</output><small>lb</small></p><div>GROSS WEIGHT</div></article></div>
-          <article class="rpm-card"><div class="rpm-top"><span>ROTOR SPEED</span><span id="chart-badge" class="badge">暫定データ</span></div><h3>基準ローター回転数</h3><p class="rpm-value"><output id="referenceRpm">—</output><small>RPM</small></p><div class="range"><h3>許容範囲 <span>基準値 ±5 RPM</span></h3><p><output id="rpmRange">未算出</output><small>RPM</small></p></div><p id="chart-status" class="rpm-note">すべての項目に有効な値を入力してください。</p><div class="range"><h3>警告・参考境界 <span>332 MIN / 385 MAX</span></h3><p id="boundary-status" class="rpm-note">入力待ち</p></div></article>
+    <form id="conditions" novalidate>
+      <section class="panel preset" aria-labelledby="preset-heading">
+        <div class="section-heading"><h2 id="preset-heading"><span>01</span> 事前設定</h2><button id="reset-inputs" type="button" class="reset-button">リセット</button></div>
+        <div id="aircraftWeight-row" class="base-row">
+          <div class="base-control"><label for="aircraftWeight">基本重量 <span id="aircraftWeight-state" class="state-label">未確定</span></label><div class="number-wrap"><input id="aircraftWeight" name="aircraftWeight" type="number" inputmode="decimal" min="0" step="any" placeholder="0" aria-describedby="aircraftWeight-error"><span>lb</span></div></div>
+          <button id="confirm-base" class="confirm-base" type="button">決定</button>
         </div>
-        <div class="data-note"><span aria-hidden="true">ⓘ</span><p><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>実画像上の各RPM線を複数点で校正しています。332 RPM MINIMUM・385 RPM MAXIMUMは、同じ画像座標で参考境界として判定します。境界判定は参考警告として別表示し、計算点・基準RPM・±5 RPMを変更しません。表示範囲は基準値±5 RPMで、運用上の許容範囲を確認したものではありません。</p></div>
+        <p id="aircraftWeight-error" class="error" aria-live="polite"></p>
+        <button id="crewWeight-trigger" class="picker-trigger" type="button" data-picker="crewWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">乗員</span><span class="field-value"><output id="crewWeight-value">300</output> <small>lb</small><span id="crewKg" class="crew-kg">（136.1 kg）</span></span><span class="field-state"><span id="crewWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="otherWeight-trigger" class="picker-trigger" type="button" data-picker="otherWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">その他</span><span class="field-value"><output id="otherWeight-value">0</output> <small>lb</small></span><span class="field-state"><span id="otherWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
       </section>
-    </div>
-    <details class="method"><summary>計算方法とデータについて <span aria-hidden="true">＋</span></summary><div><p>ISA温度（°C）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（外気温度 − ISA温度）<br>総重量（lb）= 機体重量 + 搭乗員重量 + 燃料重量<br>搭乗員重量（kg）= 搭乗員重量（lb）× 0.45359237</p><p>密度高度は湿度を考慮しない近似値です。入力範囲は気圧高度 −2,000〜20,000 ft、外気温度 −60〜60 °Cです。これはアプリの入力制限で、機体やチャートの運用範囲ではありません。</p><p>赤点と同じ画像座標で、同じ高さの左右のRPM線を求め、その水平距離の比で補間します。各線は実画像で確認できた複数点の間だけを補間し、共通の傾きは仮定しません。332〜335間と380〜390間も補間します。385 MAXIMUM破線は警告境界で、RPM補間には380・390線を使います。332未満は対応するRPMデータがないため算出しません。境界値ちょうどは境界内とし、下限未満・上限超過は参考警告として別表示します。警告があっても計算可能なRPMと±5 RPMはそのまま表示します。登録線の外側には外挿しません。高度の適用範囲と運用境界は原典未確認です。許容範囲は基準値 ±5 RPMとして計算します。現段階では飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></div></details>
+      <section class="panel departure" aria-labelledby="departure-heading">
+        <div class="section-heading"><h2 id="departure-heading"><span>02</span> 直前設定</h2><span class="section-note">タップして選択</span></div>
+        <button id="oat-trigger" class="picker-trigger oat-trigger" type="button" data-picker="oat" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">OAT <small>外気温度</small></span><span class="field-value"><output id="oat-value">20</output> <small>℃</small></span><span class="field-state"><span id="oat-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="fuelWeight-trigger" class="picker-trigger" type="button" data-picker="fuelWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">残燃料</span><span class="field-value"><output id="fuelWeight-value">150</output> <small>lb</small></span><span class="field-state"><span id="fuelWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="pressureAltitude-trigger" class="picker-trigger" type="button" data-picker="pressureAltitude" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">気圧高度</span><span class="field-value"><output id="pressureAltitude-value">2,000</output> <small>ft</small></span><span class="field-state"><span id="pressureAltitude-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <p class="fixed-speed">速度 <strong>60 kt</strong> <span>固定</span></p>
+      </section>
+      <div class="weight-summary" aria-live="polite"><span>総重量 <small>選択中の値を自動合計</small></span><strong><output id="weight-preview">450</output> <small>lb</small></strong></div>
+      <p class="input-note">基本重量の空欄は0 lb。決定前も計算に反映します。</p>
+    </form>
+    <section class="results" aria-labelledby="result-heading">
+      <div class="section-heading"><h2 id="result-heading"><span>03</span> 計算結果</h2><span class="section-note">自動更新</span></div>
+      <div aria-live="polite" aria-atomic="true">
+        <div class="metrics"><div><h3>密度高度 <small>概算</small></h3><output id="densityAltitude">—</output> <small>ft</small></div><div><h3>総重量</h3><output id="totalWeight">450</output> <small>lb</small></div></div>
+        <div class="rpm-card">
+          <div class="rpm-top"><h3>基準RPM</h3><span id="chart-badge" class="badge">暫定算出</span></div>
+          <p class="rpm-value"><output id="referenceRpm">—</output> <small>RPM</small></p>
+          <div class="range"><h3>±5 RPM範囲</h3><p><output id="rpmRange">未算出</output> <small>RPM</small></p></div>
+          <p id="chart-status" class="rpm-note"></p>
+          <div class="boundary"><h3>MINIMUM / MAXIMUM</h3><p id="boundary-status" class="rpm-note">境界判定未確定</p></div>
+        </div>
+      </div>
+      <p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p>
+    </section>
     <section class="panel chart-panel" aria-labelledby="chart-view-heading">
-      <div class="section-heading"><h2 id="chart-view-heading"><span>03</span> チャート上の計算点</h2></div>
-      <p class="hint">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
+      <div class="section-heading"><h2 id="chart-view-heading"><span>04</span> チャート上の計算点</h2></div>
+      <p class="input-note">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
       <div id="chart-frame" class="chart-frame" hidden>
         <img id="performance-chart" alt="オートローテーション性能チャート" decoding="async">
         <span id="chart-dot" class="chart-dot" aria-hidden="true" hidden></span>
       </div>
-      <p id="chart-view-status" class="chart-view-status" role="status">チャート画像未登録・プロット領域未設定</p>
-      <p class="hint">チャート画像からの暫定デジタイズ値・原典確認前</p>
+      <p id="chart-view-status" class="chart-view-status" role="status">チャート画像を読み込み中</p>
     </section>
-    <footer><span>AUTOROTATION CALCULATOR</span><span>Provisional chart data · 暫定計算版</span></footer>
+    <details class="method"><summary>計算方法と注意事項</summary><p>総重量 = 基本重量 + 乗員 + 残燃料 + その他。基本重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは赤点と同じ画像座標で左右の実測線を補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
+    <footer>Autorotation Calculator · 原典確認前</footer>
   </main>
+  <dialog id="wheel-dialog" aria-labelledby="wheel-title" aria-describedby="wheel-help">
+    <div class="dialog-heading"><h2 id="wheel-title">値を選択</h2><p id="wheel-help">上下にスワイプして選択</p></div>
+    <div class="wheel-window"><div class="wheel-selection" aria-hidden="true"></div><div id="value-wheel" class="value-wheel" role="listbox" tabindex="0" aria-labelledby="wheel-title"></div></div>
+    <p id="wheel-selection-value" class="wheel-current" aria-live="polite"></p>
+    <p class="wheel-total">総重量 <output id="wheel-total">450</output> lb <small>プレビュー</small></p>
+    <div class="dialog-actions"><button id="cancel-wheel" type="button">キャンセル</button><button id="confirm-wheel" type="button">決定</button></div>
+  </dialog>
 </body>
 </html>

@@ -1,63 +1,70 @@
-/* Run: node tests/app.test.js
- * DOM wiring tests: verifies displayed text, not browser layout.
- */
-(() => {
-  'use strict';
-  require('../calculator.js');
-  require('../chart-view-config.js');
-  require('../chart-view.js');
-  require('../rpm-image-data.js');
-  require('../chart-data.js');
-  const originalDocument = globalThis.document;
-  const originalChart = globalThis.AutorotationChart;
-  const names = ['pressureAltitude', 'oat', 'aircraftWeight', 'crewWeight', 'fuelWeight'];
-  const outputs = {};
-  const handlers = {};
-  const note = { hidden: true };
-  const form = { elements: {}, addEventListener: (event, handler) => { handlers[event] = handler; } };
-  for (const name of names) form.elements[name] = { value: '', validity: { badInput: false }, setAttribute() {} };
-  globalThis.document = {
-    getElementById(id) { return id === 'conditions' ? form : (outputs[id] ??= { textContent: '', style: {}, addEventListener() {}, complete: true, naturalWidth: 750, naturalHeight: 1334 }); },
-    querySelector() { return note; }
-  };
-  let passed = 0;
-  function check(name, condition) {
-    if (!condition) throw new Error(name);
-    passed++;
-  }
-  function input(height, weight) {
-    const values = [height, 15 - 1.98 * height / 1000, weight - 200, 100, 100];
-    names.forEach((name, i) => { form.elements[name].value = String(values[i]); });
-    handlers.input();
-  }
-  try {
-    require('../app.js');
-    check('Initial empty state', outputs.referenceRpm.textContent === '—' && outputs['boundary-status'].textContent === '入力待ち');
-    for (const height of [0]) {
-      input(height, 2508.059701492537);
-      check(`387.5 displayed with warning at ${height}`, outputs.referenceRpm.textContent === '387.5'
-        && outputs.rpmRange.textContent === '382.5 ～ 392.5'
-        && outputs['boundary-status'].textContent === '385 RPM MAXIMUM超過'
-        && outputs['chart-badge'].textContent === '暫定算出' && !note.hidden);
-    }
-    input(0, 2200);
-    check('Warning clears independently', outputs.referenceRpm.textContent === '356.4' && outputs.rpmRange.textContent === '351.4 ～ 361.4' && outputs['boundary-status'].textContent === '参考境界内（暫定）');
-    input(0, 1900);
-    check('No invented data below series', outputs.referenceRpm.textContent === '—' && outputs['boundary-status'].textContent === '332 RPM MINIMUM未満');
-    // Synthetic future data: confirms the UI has no hard-coded 332 clamp.
-    globalThis.AutorotationChart = { checkBoundaries: originalChart.checkBoundaries, lookup: () => ({ status: 'ok', referenceRpm: 330 }) };
-    input(0, 1900);
-    check('Below-332 computed values stay visible', outputs.referenceRpm.textContent === '330' && outputs.rpmRange.textContent === '325 ～ 335' && outputs['boundary-status'].textContent === '332 RPM MINIMUM未満');
-    globalThis.AutorotationChart = originalChart;
-    input(0, 2536.417910447761);
-    check('390 endpoint visible above maximum', outputs.referenceRpm.textContent === '390' && outputs.rpmRange.textContent === '385 ～ 395' && outputs['boundary-status'].textContent === '385 RPM MAXIMUM超過');
-    form.elements.crewWeight.value = '';
-    handlers.input();
-    check('Incomplete input clears stale RPM and warning', outputs.referenceRpm.textContent === '—' && outputs.rpmRange.textContent === '未算出' && outputs['boundary-status'].textContent === '入力待ち' && !note.hidden);
-    globalThis.AutorotationUiTestResults = { passed };
-    if (typeof console !== 'undefined') console.log(globalThis.AutorotationUiTestResults);
-  } finally {
-    globalThis.document = originalDocument;
-    globalThis.AutorotationChart = originalChart;
-  }
-})();
+/* Executed in real Edge by tests/browser-check.ps1. */
+(async () => {
+ const get=id=>document.getElementById(id), checks=[];
+ const check=(name,ok)=>{if(!ok)throw Error(name);checks.push(name);};
+ const wait=()=>new Promise(r=>setTimeout(r,100));
+ for(let i=0;i<100&&!get('performance-chart')?.naturalWidth;i++)await wait();
+ const base=v=>{get('aircraftWeight').value=String(v);get('aircraftWeight').dispatchEvent(new Event('input',{bubbles:true}));};
+ async function pick(key,value,confirm=true){
+  get(key+'-trigger').click();
+  const i=AutorotationInputs.fields[key].options.indexOf(value);
+  check('Available selection '+key+'/'+value,i>=0);
+  get('value-wheel').children[i].click();await wait();
+  if(confirm)get('confirm-wheel').click();
+ }
+ const dot=()=>({x:parseFloat(get('chart-dot').style.left),y:parseFloat(get('chart-dot').style.top),visible:!get('chart-dot').hidden});
+ check('Initial blank basic and total 450',get('aircraftWeight').value===''&&get('weight-preview').textContent==='450');
+ check('Initial crew kg',get('crewKg').textContent==='（136.1 kg）');
+ check('Initial values',get('crewWeight-value').textContent==='300'&&get('otherWeight-value').textContent==='0'&&get('oat-value').textContent==='20'&&get('fuelWeight-value').textContent==='150'&&get('pressureAltitude-value').textContent==='2,000');
+ check('Single column order',get('preset-heading').getBoundingClientRect().top<get('departure-heading').getBoundingClientRect().top&&get('departure-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top&&get('result-heading').getBoundingClientRect().top<get('chart-view-heading').getBoundingClientRect().top);
+ check('All inputs and total in first 844px',get('weight-preview').getBoundingClientRect().bottom<844);
+ base(1600);check('Basic draft preview',get('weight-preview').textContent==='2,050'&&get('aircraftWeight-state').textContent==='未確定');
+ get('confirm-base').click();check('Basic confirmed',get('aircraftWeight-state').textContent==='確定済み');
+ base(1610);check('Basic reeditable',get('aircraftWeight-state').textContent==='未確定');base(1600);
+ await pick('crewWeight',320,false);
+ check('Live crew kg in modal',get('wheel-selection-value').textContent==='320 lb（145.1 kg）'&&get('crewKg').textContent==='（145.1 kg）');
+ check('Wheel draft included before confirm',get('weight-preview').textContent==='2,070'&&get('wheel-total').textContent==='2,070');
+ get('cancel-wheel').click();check('Cancel restores previous value',get('weight-preview').textContent==='2,050'&&get('crewWeight-value').textContent==='300');
+ await pick('crewWeight',320);check('Wheel confirmed',get('crewWeight-state').textContent==='確定済み'&&get('crewKg').textContent==='（145.1 kg）');
+ await pick('crewWeight',340,false);get('cancel-wheel').click();
+ check('Cancel restores confirmed status',get('crewWeight-state').textContent==='確定済み'&&get('crewWeight-value').textContent==='320');
+ await pick('otherWeight',50);check('Other added',get('weight-preview').textContent==='2,120');
+ await pick('crewWeight',300);await pick('otherWeight',0);
+ const initial=dot();check('Image and red dot visible',initial.visible&&getComputedStyle(get('chart-dot')).backgroundColor==='rgb(227, 45, 50)');
+ base(1700);const right=dot();base(1500);const left=dot();base(1600);
+ check('Weight moves horizontally',right.x>initial.x&&left.x<initial.x&&right.y===initial.y&&left.y===initial.y);
+ await pick('oat',21);const hot=dot();await pick('oat',19);const cold=dot();await pick('oat',20);
+ check('OAT moves vertically',hot.y<initial.y&&cold.y>initial.y&&hot.x===initial.x&&cold.x===initial.x);
+ await pick('pressureAltitude',1500);const lower=dot();await pick('pressureAltitude',2000);
+ check('Pressure altitude moves vertically',lower.y>initial.y&&lower.x===initial.x);
+ check('Same inputs same dot',dot().x===initial.x&&dot().y===initial.y);
+ get('crewWeight-trigger').click();get('value-wheel').scrollTop=0;await wait();
+ check('Scroll updates kg at crew minimum',get('wheel-selection-value').textContent==='250 lb（113.4 kg）'&&get('crewKg').textContent==='（113.4 kg）');
+ get('cancel-wheel').click();
+ get('oat-trigger').click();get('value-wheel').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));await wait();
+ check('Keyboard wheel selection',get('oat-value').textContent==='21');
+ get('wheel-dialog').dispatchEvent(new Event('cancel',{cancelable:true}));
+ check('Escape cancels and restores focus',!get('wheel-dialog').open&&get('oat-value').textContent==='20'&&document.activeElement===get('oat-trigger'));
+ get('fuelWeight-trigger').click();get('value-wheel').scrollTop=20*52;await wait();
+ check('Scroll selection preview',get('fuelWeight-value').textContent==='200'&&get('weight-preview').textContent==='2,100');
+ get('cancel-wheel').click();
+ await pick('pressureAltitude',1000);await pick('oat',5);base(2058);
+ const point={grossWeightLb:2508,densityAltitudeFt:AutorotationCalculator.densityAltitude(1000,5)};
+ const expected=AutorotationCalculator.rotorSpeed(point,AutorotationChart);
+ const fmt=v=>new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(v);
+ check('Above385 still shows RPM range and dot',expected.referenceRpm>385&&dot().visible&&get('referenceRpm').textContent===fmt(expected.referenceRpm)&&get('rpmRange').textContent===fmt(expected.minRpm)+' ～ '+fmt(expected.maxRpm)&&get('boundary-status').textContent==='385 RPM MAXIMUM超過');
+ base(1450);check('Below series keeps dot and warning',dot().visible&&get('referenceRpm').textContent==='—'&&get('boundary-status').textContent==='332 RPM MINIMUM未満');
+ const original=globalThis.AutorotationChart;
+ globalThis.AutorotationChart={lookup:()=>({status:'ok',referenceRpm:330}),checkBoundaries:original.checkBoundaries};
+ base(1450);check('Future below332 value remains visible',get('referenceRpm').textContent==='330'&&get('rpmRange').textContent==='325 ～ 335');
+ globalThis.AutorotationChart=original;
+ base(2200);check('Outside chart hides without clipping',!dot().visible&&get('chart-dot').style.left===''&&get('chart-view-status').textContent==='チャート表示範囲外');
+ base(1600);await pick('pressureAltitude',2000);await pick('oat',40);check('Outside altitude hides dot',!dot().visible&&get('chart-view-status').textContent==='チャート表示範囲外');
+ base(-1);check('Invalid basic clears stale RPM',get('referenceRpm').textContent==='—'&&get('boundary-status').textContent==='入力待ち'&&get('aircraftWeight').getAttribute('aria-invalid')==='true');
+ check('Original notice preserved',document.querySelector('.data-note').textContent.includes('チャート画像からの暫定デジタイズ値・原典確認前'));
+ get('reset-inputs').click();check('Reset returns all defaults',get('weight-preview').textContent==='450'&&get('oat-value').textContent==='20'&&get('pressureAltitude-value').textContent==='2,000');
+ base(1600);get('confirm-base').click();
+ check('No horizontal overflow',document.documentElement.scrollWidth<=innerWidth);
+ window.scrollTo(0,0);await wait();
+ return {passed:checks.length,checks};
+})()

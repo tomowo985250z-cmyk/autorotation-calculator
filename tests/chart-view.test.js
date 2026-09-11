@@ -89,47 +89,30 @@
     realRenderer.update(p);
     check('Actual image range not clipped', realElements.dot.hidden && realElements.status.textContent === 'チャート表示範囲外');
   }
-  // Exercise the actual app input handler, including OAT -> result.point -> dot.
-  const originalDocument = globalThis.document;
-  const outputs = {};
-  const handlers = {};
-  const names = ['pressureAltitude', 'oat', 'aircraftWeight', 'crewWeight', 'fuelWeight'];
-  const form = { elements: {}, addEventListener(event, fn) { handlers[event] = fn; } };
-  names.forEach(name => { form.elements[name] = Object.assign(element(), { value: '', validity: { badInput: false } }); });
-  const chartImage = Object.assign(element(), { complete: true, naturalWidth: 750, naturalHeight: 1334 });
-  outputs['performance-chart'] = chartImage;
-  globalThis.document = {
-    getElementById(id) { return id === 'conditions' ? form : (outputs[id] ??= element()); },
-    querySelector() { return element(); }
-  };
-  globalThis.AutorotationChartViewConfig = productionConfig;
+  // Calculation-to-renderer integration; UI events are covered in real Edge (app.test.js).
   function input(oat, weight = 2170, altitude = 3000) {
-    [altitude, oat, weight - 200, 100, 100].forEach((v, i) => { form.elements[names[i]].value = String(v); });
-    handlers.input();
-    return { left: outputs['chart-dot'].style.left, top: outputs['chart-dot'].style.top };
+    const result = globalThis.AutorotationCalculator.rotorSpeed({
+      densityAltitudeFt:globalThis.AutorotationCalculator.densityAltitude(altitude,oat),
+      grossWeightLb:weight
+    },globalThis.AutorotationChart);
+    realRenderer.update(result.point);
+    return {left:realElements.dot.style.left,top:realElements.dot.style.top,result};
   }
-  try {
-    require('../app.js');
-    const cool = input(10), warm = input(20);
-    check('Only OAT changes vertical position', warm.left === cool.left && parseFloat(warm.top) < parseFloat(cool.top));
-    const heavier = input(20, 2270);
-    check('Only weight changes horizontal position', heavier.top === warm.top && parseFloat(heavier.left) > parseFloat(warm.left));
-    const repeated = input(20, 2270);
-    check('Same input same dot', repeated.top === heavier.top && repeated.left === heavier.left);
-    input(15, 2507.75, 0);
-    check('MAXIMUM warning does not hide dot', !outputs['chart-dot'].hidden && outputs['boundary-status'].textContent === '385 RPM MAXIMUM超過' && outputs.referenceRpm.textContent === '387.5');
-    input(15, 1900, 0);
-    check('RPM data range does not constrain chart range', !outputs['chart-dot'].hidden && outputs.referenceRpm.textContent === '—');
-    input(15, 2801, 0);
-    check('Actual app outside hides dot with range message', outputs['chart-dot'].hidden && outputs['chart-view-status'].textContent === 'チャート表示範囲外');
-    input(15, 2170, 0);
-    form.elements.crewWeight.value = '';
-    handlers.input();
-    check('Actual app incomplete clears dot', outputs['chart-dot'].hidden);
-  } finally {
-    globalThis.document = originalDocument;
-    globalThis.AutorotationChartViewConfig = productionConfig;
-  }
+  const cool=input(10),warm=input(20);
+  check('Only OAT changes vertical position',warm.left===cool.left&&parseFloat(warm.top)<parseFloat(cool.top));
+  const heavier=input(20,2270);
+  check('Only weight changes horizontal position',heavier.top===warm.top&&parseFloat(heavier.left)>parseFloat(warm.left));
+  const repeated=input(20,2270);
+  check('Same input same dot',repeated.top===heavier.top&&repeated.left===heavier.left);
+  const beyond=input(15,2507.75,0);
+  check('MAXIMUM warning does not hide dot',!realElements.dot.hidden&&beyond.result.boundary.maximum.status==='above-maximum'&&beyond.result.referenceRpm>385);
+  const below=input(15,1900,0);
+  check('RPM data range does not constrain chart range',!realElements.dot.hidden&&below.result.status==='out-of-range');
+  input(15,2801,0);
+  check('Outside hides dot with range message',realElements.dot.hidden&&realElements.status.textContent==='チャート表示範囲外');
+  input(15,null,0);
+  check('Incomplete clears dot',realElements.dot.hidden);
+
   globalThis.AutorotationChartViewTestResults = { passed };
   if (typeof console !== 'undefined') console.log(globalThis.AutorotationChartViewTestResults);
 })();
