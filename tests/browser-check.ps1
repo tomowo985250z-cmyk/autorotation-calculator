@@ -66,6 +66,73 @@ try {
     $mobilePath = Join-Path $profilePath 'mobile.png'
     [IO.File]::WriteAllBytes($mobilePath, [Convert]::FromBase64String($screenshot.data))
     Write-Output "Mobile screenshot: $mobilePath"
+    function Eval-Storage($expression) {
+        $r = Invoke-Cdp 'Runtime.evaluate' @{expression=$expression;awaitPromise=$true;returnByValue=$true}
+        if ($r.exceptionDetails) { throw ($r.exceptionDetails | ConvertTo-Json -Depth 10) }
+        return $r.result.value
+    }
+    function Reload-Storage {
+        Eval-Storage 'globalThis.__reloadPending=true' | Out-Null
+        Invoke-Cdp 'Page.reload' @{} | Out-Null
+        for ($i=0; $i -lt 100; $i++) {
+            Start-Sleep -Milliseconds 100
+            if (Eval-Storage "globalThis.__reloadPending!==true && document.readyState==='complete' && !!globalThis.AutorotationInputs && document.getElementById('densityAltitude').textContent!=='—'") { return }
+        }
+        throw 'Reload timed out'
+    }
+    $seed = @'
+(()=>{
+ const g=id=>document.getElementById(id);
+ g('aircraftWeight').value='1650.25';g('aircraftWeight').dispatchEvent(new Event('input'));g('confirm-base').click();
+ for(const [key,value] of [['crewWeight',320],['otherWeight',30],['fuelWeight',200],['pressureAltitude',1500]]){
+  g(key+'-trigger').click();g('value-wheel').children[AutorotationInputs.fields[key].options.indexOf(value)].click();g('confirm-wheel').click();
+ }
+ g('oat-trigger').click();g('value-wheel').children[39].click();
+ return localStorage.getItem(AutorotationInputs.storageKey);
+})()
+'@
+    $saved = Eval-Storage $seed
+    $read = @'
+(()=>{
+ const ids=['aircraftWeight','crewWeight-value','fuelWeight-value','otherWeight-value','oat-value','pressureAltitude-value','crewKg','weight-preview','densityAltitude','totalWeight','referenceRpm','rpmRange','boundary-status',...['aircraftWeight','crewWeight','fuelWeight','otherWeight','oat','pressureAltitude'].map(k=>k+'-state')];
+ return JSON.stringify(ids.map(id=>{const e=document.getElementById(id);return id==='aircraftWeight'?e.value:e.textContent}));
+})()
+'@
+    $before = Eval-Storage $read
+    Reload-Storage
+    if ($before -cne (Eval-Storage $read)) { throw 'Inputs, confirmation or results changed on reload' }
+    if ($saved -cne (Eval-Storage 'localStorage.getItem(AutorotationInputs.storageKey)')) { throw 'Saved input state changed' }
+    Write-Output 'Persistence PASS: reload restores inputs, confirmation, kg, total, DA, RPM and range'
+    Invoke-Cdp 'Browser.close' @{} | Out-Null
+    $socket.Dispose()
+    if (-not $browser.WaitForExit(10000)) { throw 'Edge did not close' }
+    $browser = Start-Process -FilePath $edgePath -WindowStyle Hidden -PassThru -ArgumentList @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--remote-debugging-port=$port", "--user-data-dir=`"$profilePath`"", $pageUrl)
+    $target = $null
+    for ($i=0; $i -lt 100; $i++) {
+        Start-Sleep -Milliseconds 100
+        try {
+            $targets = Invoke-RestMethod "http://127.0.0.1:$port/json/list"
+            $target = $targets | Where-Object type -eq 'page' | Select-Object -First 1
+            if ($target) { break }
+        } catch {}
+    }
+    if (-not $target) { throw 'Edge did not reopen' }
+    $socket = [System.Net.WebSockets.ClientWebSocket]::new()
+    $socket.ConnectAsync([Uri]$target.webSocketDebuggerUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult() | Out-Null
+    Reload-Storage
+    if ($before -cne (Eval-Storage $read)) { throw 'State changed after browser restart' }
+    Write-Output 'Persistence PASS: closing and reopening Edge restores the same inputs and results'
+    foreach ($invalid in @('missing','broken','out-of-range')) {
+        switch ($invalid) {
+            'missing' { Eval-Storage 'localStorage.removeItem(AutorotationInputs.storageKey)' | Out-Null }
+            'broken' { Eval-Storage "localStorage.setItem(AutorotationInputs.storageKey,'{bad')" | Out-Null }
+            'out-of-range' { Eval-Storage "(()=>{const s=JSON.parse(localStorage.getItem(AutorotationInputs.storageKey));s.values.crewWeight=999;localStorage.setItem(AutorotationInputs.storageKey,JSON.stringify(s))})()" | Out-Null }
+        }
+        Reload-Storage
+        $ok = Eval-Storage "(()=>{const g=id=>document.getElementById(id);return g('aircraftWeight').value===''&&g('crewWeight-value').textContent==='300'&&g('fuelWeight-value').textContent==='150'&&g('otherWeight-value').textContent==='0'&&g('oat-value').textContent==='20'&&g('pressureAltitude-value').textContent==='2,000'&&g('weight-preview').textContent==='450'&&['aircraftWeight','crewWeight','fuelWeight','otherWeight','oat','pressureAltitude'].every(k=>g(k+'-state').textContent==='未確定')})()"
+        if (-not $ok) { throw "Default fallback failed: $invalid" }
+        Write-Output "Persistence PASS: $invalid uses defaults"
+    }
 } finally {
     if ($socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
         try { Invoke-Cdp 'Browser.close' @{} | Out-Null } catch {}
