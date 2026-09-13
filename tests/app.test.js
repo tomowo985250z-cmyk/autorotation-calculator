@@ -19,15 +19,15 @@
  check('Single column order',get('preset-heading').getBoundingClientRect().top<get('departure-heading').getBoundingClientRect().top&&get('departure-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top&&get('result-heading').getBoundingClientRect().top<get('chart-view-heading').getBoundingClientRect().top);
  check('All inputs and total in first 844px',get('weight-preview').getBoundingClientRect().bottom<844);
  base(1600);check('Basic draft preview',get('weight-preview').textContent==='2,050'&&get('aircraftWeight-state').textContent==='未確定');
- get('confirm-base').click();check('Basic confirmed',get('aircraftWeight-state').textContent==='確定済み');
+ get('confirm-base').click();check('Basic confirmed',get('aircraftWeight-state').textContent==='確定済');
  base(1610);check('Basic reeditable',get('aircraftWeight-state').textContent==='未確定');base(1600);
  await pick('crewWeight',320,false);
  check('Live crew kg in modal',get('wheel-selection-value').textContent==='320 lb（145.1 kg）'&&get('crewKg').textContent==='（145.1 kg）');
  check('Wheel draft included before confirm',get('weight-preview').textContent==='2,070'&&get('wheel-total').textContent==='2,070');
  get('cancel-wheel').click();check('Cancel restores previous value',get('weight-preview').textContent==='2,050'&&get('crewWeight-value').textContent==='300');
- await pick('crewWeight',320);check('Wheel confirmed',get('crewWeight-state').textContent==='確定済み'&&get('crewKg').textContent==='（145.1 kg）');
+ await pick('crewWeight',320);check('Wheel confirmed',get('crewWeight-state').textContent==='確定済'&&get('crewKg').textContent==='（145.1 kg）');
  await pick('crewWeight',340,false);get('cancel-wheel').click();
- check('Cancel restores confirmed status',get('crewWeight-state').textContent==='確定済み'&&get('crewWeight-value').textContent==='320');
+ check('Cancel restores confirmed status',get('crewWeight-state').textContent==='確定済'&&get('crewWeight-value').textContent==='320');
  await pick('otherWeight',50);check('Other added',get('weight-preview').textContent==='2,120');
  await pick('crewWeight',300);await pick('otherWeight',0);
  const initial=dot();check('Image and red dot visible',initial.visible&&getComputedStyle(get('chart-dot')).backgroundColor==='rgb(227, 45, 50)');
