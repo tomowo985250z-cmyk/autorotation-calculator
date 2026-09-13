@@ -8,7 +8,6 @@ dialog{position:fixed;inset:auto 0 0;width:min(100%,480px);max-height:95dvh;marg
 
 /* The existing confirmed class is driven by the input model. */
 .preset .picker-trigger{padding:13px 12px;margin:0 0 5px;border:1px solid transparent;border-bottom-color:var(--line);border-radius:9px;background:#f7f8fa}
-.preset .picker-trigger.input-group-start{margin-top:20px}
 .preset .picker-trigger .field-name,.preset .picker-trigger .field-value{color:var(--muted)}
 .preset .picker-trigger.confirmed{background:#f0f4f7;border-color:#d4dfe7}
 .preset .picker-trigger.confirmed .field-name{color:var(--ink)}
@@ -19,3 +18,25 @@ dialog{position:fixed;inset:auto 0 0;width:min(100%,480px);max-height:95dvh;marg
 .preset .base-row.confirmed{background:#f0f4f7;border-color:#d4dfe7}
 .preset .base-row.confirmed label{color:var(--ink)}
 .preset .base-row.confirmed input{color:var(--blue);font-weight:700}
+
+.preset .input-group-label{margin:3px 2px 9px;font-size:12px;font-weight:600;color:var(--muted)}
+.preset .input-group-label-spaced{margin-top:25px}
+.preset .picker-trigger{min-height:86px;padding:13px 14px;background:#f3f5f7;border-color:transparent}
+.preset .picker-trigger .field-name{font-size:13px}
+.preset .picker-trigger .field-state{grid-row:1}
+.preset .picker-trigger .field-value{grid-column:1 / -1;display:flex;align-items:baseline;gap:4px;min-width:0;font-size:30px;font-weight:700;color:#78848f}
+.preset .picker-trigger .field-value small{margin-left:auto;flex:none}
+.preset .picker-trigger .crew-kg{margin-left:2px;flex:none}
+.preset .picker-trigger.confirmed{background:#fff;border-color:#cbd5df}
+.preset .picker-trigger.confirmed .field-value{color:var(--ink)}
+.preset .picker-trigger:focus-visible{outline:none;border-color:var(--blue)}
+.preset .base-row{min-height:108px;background:#f3f5f7;border-color:transparent}
+.preset .base-row .base-control label{font-size:13px}
+.preset .base-row .number-wrap{background:transparent;border-color:#dce2e8}
+.preset .base-row input{font-weight:700}
+.preset .base-row.confirmed{background:#fff;border-color:#cbd5df}
+.preset .base-row.confirmed input{color:var(--ink)}
+.preset .base-row:focus-within{border-color:var(--blue)}
+.preset .base-row .number-wrap:focus-within{outline:none;border-color:var(--blue)}
+.preset .error{color:var(--muted)}
+@media(max-width:360px){.preset .picker-trigger .field-value{font-size:27px}.preset .picker-trigger .crew-kg{font-size:11px}}
