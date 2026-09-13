@@ -47,3 +47,6 @@ dialog{position:fixed;inset:auto 0 0;width:min(100%,480px);max-height:95dvh;marg
 .preset .number-wrap span,.preset .picker-trigger .field-value small{font-size:16px;font-weight:650}
 .preset .picker-trigger .crew-kg{font-size:15px;font-weight:600}
 @media(max-width:360px){.preset .picker-trigger .crew-kg{font-size:13px}}
+
+.rpm-value small,.range p small{font-size:17px;font-weight:650}
+.metrics>div>small{font-size:15px;font-weight:650}
