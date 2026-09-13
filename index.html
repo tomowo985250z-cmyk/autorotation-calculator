@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#163b33">
+  <meta name="theme-color" content="#f5f6f8">
   <title>Autorotation Calculator</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./calculator.js" defer></script>
@@ -15,33 +15,28 @@
   <script src="./app.js" defer></script>
 </head>
 <body>
-  <header class="topbar"><span class="brand-mark" aria-hidden="true">✳</span><h1>Autorotation Calculator</h1></header>
+  <header class="topbar"><h1>Autorotation Calculator</h1></header>
   <main>
     <form id="conditions" novalidate>
       <section class="panel preset" aria-labelledby="preset-heading">
-        <div class="section-heading"><h2 id="preset-heading"><span>01</span> 事前設定</h2><button id="reset-inputs" type="button" class="reset-button">リセット</button></div>
+        <div class="section-heading"><h2 id="preset-heading">入力</h2><button id="reset-inputs" type="button" class="reset-button">リセット</button></div>
+        <button id="pressureAltitude-trigger" class="picker-trigger" type="button" data-picker="pressureAltitude" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">気圧高度</span><span class="field-value"><output id="pressureAltitude-value">2,000</output> <small>ft</small></span><span class="field-state"><span id="pressureAltitude-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="oat-trigger" class="picker-trigger" type="button" data-picker="oat" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">外気温度</span><span class="field-value"><output id="oat-value">20</output> <small>℃</small></span><span class="field-state"><span id="oat-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
         <div id="aircraftWeight-row" class="base-row">
-          <div class="base-control"><label for="aircraftWeight">基本重量 <span id="aircraftWeight-state" class="state-label">未確定</span></label><div class="number-wrap"><input id="aircraftWeight" name="aircraftWeight" type="number" inputmode="decimal" min="0" step="any" placeholder="0" aria-describedby="aircraftWeight-error"><span>lb</span></div></div>
+          <div class="base-control"><label for="aircraftWeight">機体重量 <span id="aircraftWeight-state" class="state-label">未確定</span></label><div class="number-wrap"><input id="aircraftWeight" name="aircraftWeight" type="number" inputmode="decimal" min="0" step="any" placeholder="0" aria-describedby="aircraftWeight-error"><span>lb</span></div></div>
           <button id="confirm-base" class="confirm-base" type="button">決定</button>
         </div>
         <p id="aircraftWeight-error" class="error" aria-live="polite"></p>
-        <button id="crewWeight-trigger" class="picker-trigger" type="button" data-picker="crewWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">乗員</span><span class="field-value"><output id="crewWeight-value">300</output> <small>lb</small><span id="crewKg" class="crew-kg">（136.1 kg）</span></span><span class="field-state"><span id="crewWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
-        <button id="otherWeight-trigger" class="picker-trigger" type="button" data-picker="otherWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">その他</span><span class="field-value"><output id="otherWeight-value">0</output> <small>lb</small></span><span class="field-state"><span id="otherWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
-      </section>
-      <section class="panel departure" aria-labelledby="departure-heading">
-        <div class="section-heading"><h2 id="departure-heading"><span>02</span> 直前設定</h2><span class="section-note">タップして選択</span></div>
-        <button id="oat-trigger" class="picker-trigger oat-trigger" type="button" data-picker="oat" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">OAT <small>外気温度</small></span><span class="field-value"><output id="oat-value">20</output> <small>℃</small></span><span class="field-state"><span id="oat-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
-        <button id="fuelWeight-trigger" class="picker-trigger" type="button" data-picker="fuelWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">残燃料</span><span class="field-value"><output id="fuelWeight-value">150</output> <small>lb</small></span><span class="field-state"><span id="fuelWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
-        <button id="pressureAltitude-trigger" class="picker-trigger" type="button" data-picker="pressureAltitude" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">気圧高度</span><span class="field-value"><output id="pressureAltitude-value">2,000</output> <small>ft</small></span><span class="field-state"><span id="pressureAltitude-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="crewWeight-trigger" class="picker-trigger" type="button" data-picker="crewWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">搭乗員重量</span><span class="field-value"><output id="crewWeight-value">300</output> <small>lb</small><span id="crewKg" class="crew-kg">（136.1 kg）</span></span><span class="field-state"><span id="crewWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <button id="fuelWeight-trigger" class="picker-trigger" type="button" data-picker="fuelWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">燃料重量</span><span class="field-value"><output id="fuelWeight-value">150</output> <small>lb</small></span><span class="field-state"><span id="fuelWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button>
+        <details class="extra-input"><summary>その他の重量</summary><button id="otherWeight-trigger" class="picker-trigger" type="button" data-picker="otherWeight" aria-haspopup="dialog" aria-controls="wheel-dialog"><span class="field-name">その他</span><span class="field-value"><output id="otherWeight-value">0</output> <small>lb</small></span><span class="field-state"><span id="otherWeight-state" class="state-label">未確定</span><span aria-hidden="true">⌄</span></span></button></details>
         <p class="fixed-speed">速度 <strong>60 kt</strong> <span>固定</span></p>
       </section>
-      <div class="weight-summary" aria-live="polite"><span>総重量 <small>選択中の値を自動合計</small></span><strong><output id="weight-preview">450</output> <small>lb</small></strong></div>
-      <p class="input-note">基本重量の空欄は0 lb。決定前も計算に反映します。</p>
+      <output id="weight-preview" hidden>450</output>
     </form>
     <section class="results" aria-labelledby="result-heading">
-      <div class="section-heading"><h2 id="result-heading"><span>03</span> 計算結果</h2><span class="section-note">自動更新</span></div>
+      <div class="section-heading"><h2 id="result-heading">計算結果</h2><span class="section-note">自動更新</span></div>
       <div aria-live="polite" aria-atomic="true">
-        <div class="metrics"><div><h3>密度高度 <small>概算</small></h3><output id="densityAltitude">—</output> <small>ft</small></div><div><h3>総重量</h3><output id="totalWeight">450</output> <small>lb</small></div></div>
         <div class="rpm-card">
           <div class="rpm-top"><h3>基準RPM</h3><span id="chart-badge" class="badge">暫定算出</span></div>
           <p class="rpm-value"><output id="referenceRpm">—</output> <small>RPM</small></p>
@@ -49,11 +44,11 @@
           <p id="chart-status" class="rpm-note"></p>
           <div class="boundary"><h3>MINIMUM / MAXIMUM</h3><p id="boundary-status" class="rpm-note">境界判定未確定</p></div>
         </div>
+        <div class="metrics"><div><h3>総重量</h3><output id="totalWeight">450</output> <small>lb</small></div><div><h3>密度高度 <small>概算</small></h3><output id="densityAltitude">—</output> <small>ft</small></div></div>
       </div>
-      <p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p>
     </section>
     <section class="panel chart-panel" aria-labelledby="chart-view-heading">
-      <div class="section-heading"><h2 id="chart-view-heading"><span>04</span> チャート上の計算点</h2></div>
+      <div class="section-heading"><h2 id="chart-view-heading">チャート</h2></div>
       <p class="input-note">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
       <div id="chart-frame" class="chart-frame" hidden>
         <img id="performance-chart" alt="オートローテーション性能チャート" decoding="async">
@@ -61,7 +56,7 @@
       </div>
       <p id="chart-view-status" class="chart-view-status" role="status">チャート画像を読み込み中</p>
     </section>
-    <details class="method"><summary>計算方法と注意事項</summary><p>総重量 = 基本重量 + 乗員 + 残燃料 + その他。基本重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは赤点と同じ画像座標で左右の実測線を補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
+    <details class="method"><summary>計算方法と注意事項</summary><p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p><p>機体重量の空欄は0 lb。決定前も計算に反映します。</p><p>総重量 = 機体重量 + 搭乗員重量 + 燃料重量 + その他。機体重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは赤点と同じ画像座標で左右の実測線を補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
     <footer>Autorotation Calculator · 原典確認前</footer>
   </main>
   <dialog id="wheel-dialog" aria-labelledby="wheel-title" aria-describedby="wheel-help">
