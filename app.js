@@ -19,7 +19,7 @@ function render(){
  display('aircraftWeight-error',s.error);
  base.setAttribute('aria-invalid',String(Boolean(s.error)));
  for(const key of ['aircraftWeight',...Object.keys(fields)]){
-  display(key+'-state',s.confirmed[key]?'確定済み':'未確定');
+  display(key+'-state',s.confirmed[key]?'確定済':'未確定');
   get(key==='aircraftWeight'?'aircraftWeight-row':key+'-trigger').classList.toggle('confirmed',s.confirmed[key]);
   if(fields[key]) display(key+'-value',format(s.values[key]));
  }
