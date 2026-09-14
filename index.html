@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f6f8">
   <title>Autorotation Calculator</title>
-  <link rel="stylesheet" href="./style.css?v=chart-pages-1">
+  <link rel="stylesheet" href="./style.css?v=result-units-1">
   <script src="./calculator.js" defer></script>
   <script src="./chart-view-config.js" defer></script>
   <script src="./chart-view.js" defer></script>
@@ -13,7 +13,6 @@
   <script src="./chart-data.js" defer></script>
   <script src="./input-model.js" defer></script>
   <script src="./app.js?v=input-status-2" defer></script>
-  <script src="./chart-pages.js?v=1" defer></script>
 </head>
 <body>
   <header class="topbar"><h1>Autorotation Calculator</h1></header>
@@ -52,22 +51,10 @@
     </section>
     <section class="panel chart-panel" aria-labelledby="chart-view-heading">
       <div class="section-heading"><h2 id="chart-view-heading">チャート</h2></div>
-      <div class="chart-page-bar">
-        <strong id="chart-page-title">ピッチリンク用</strong>
-        <nav class="chart-page-nav" aria-label="チャートの画面切替">
-          <button id="chart-page-prev" type="button" aria-label="前の画面">‹</button>
-          <span id="chart-page-count" aria-live="polite">1 / 2</span>
-          <button id="chart-page-next" type="button" aria-label="次の画面">›</button>
-        </nav>
-      </div>
       <p class="input-note">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
       <div id="chart-frame" class="chart-frame" hidden>
         <img id="performance-chart" alt="オートローテーション性能チャート" decoding="async">
         <span id="chart-dot" class="chart-dot" aria-hidden="true" hidden></span>
-        <div class="chart-hex-controls" aria-label="六角形の回転操作">
-          <button id="red-hex" class="hex-control red-hex" type="button" aria-label="赤六角形を回転"><span class="hex-shape" aria-hidden="true"></span></button>
-          <button id="blue-hex" class="hex-control blue-hex" type="button" aria-label="青六角形を回転"><span class="hex-shape" aria-hidden="true"></span></button>
-        </div>
       </div>
       <p id="chart-view-status" class="chart-view-status" role="status">チャート画像を読み込み中</p>
     </section>

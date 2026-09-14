@@ -50,13 +50,3 @@ dialog{position:fixed;inset:auto 0 0;width:min(100%,480px);max-height:95dvh;marg
 
 .rpm-value small,.range p small{font-size:17px;font-weight:650}
 .metrics>div>small{font-size:15px;font-weight:650}
-
-.chart-page-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 8px}
-.chart-page-bar strong{font-size:14px;font-weight:650}
-.chart-page-nav{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-.chart-page-nav button{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:23px;line-height:1}
-.chart-frame{touch-action:pan-y}
-.chart-hex-controls{position:absolute;inset:5px 0 auto;display:flex;justify-content:space-between;padding:0 8px;pointer-events:none}
-.hex-control{display:grid;place-items:center;width:44px;height:44px;border:0;background:transparent;padding:0;pointer-events:auto;touch-action:none}
-.hex-shape{display:block;width:35px;height:35px;clip-path:polygon(25% 7%,75% 7%,100% 50%,75% 93%,25% 93%,0 50%);background:currentColor;transform-origin:center}
-.red-hex{color:#c7434f}.blue-hex{color:#3569a7}
