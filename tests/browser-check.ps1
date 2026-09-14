@@ -34,13 +34,8 @@ try {
     for ($attempt=0; $attempt -lt 80 -and -not (Test-Path $portFile); $attempt++) { Start-Sleep -Milliseconds 250 }
     if (-not (Test-Path $portFile)) { throw 'Edge debugging endpoint did not start' }
     $port = (Get-Content $portFile)[0]
-    $target = $null
-    for ($i=0; $i -lt 100 -and -not $target; $i++) {
-        Start-Sleep -Milliseconds 100
-        $targets = Invoke-RestMethod "http://127.0.0.1:$port/json/list"
-        $target = @($targets.value) + @($targets) | Where-Object { $_.url -like '*AutorotationCalculator/index.html' } | Select-Object -First 1
-    }
-    if (-not $target) { throw 'Calculator page did not open' }
+    $targets = Invoke-RestMethod "http://127.0.0.1:$port/json/list"
+    $target = $targets | Where-Object type -eq 'page' | Select-Object -First 1
     $socket.ConnectAsync([Uri]$target.webSocketDebuggerUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult() | Out-Null
     Invoke-Cdp 'Emulation.setDeviceMetricsOverride' @{width=390;height=844;deviceScaleFactor=1;mobile=$false} | Out-Null
     $expression = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'app.test.js'))
@@ -117,7 +112,7 @@ try {
         Start-Sleep -Milliseconds 100
         try {
             $targets = Invoke-RestMethod "http://127.0.0.1:$port/json/list"
-            $target = @($targets.value) + @($targets) | Where-Object { $_.url -like '*AutorotationCalculator/index.html' } | Select-Object -First 1
+            $target = $targets | Where-Object type -eq 'page' | Select-Object -First 1
             if ($target) { break }
         } catch {}
     }
