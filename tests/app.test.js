@@ -16,7 +16,7 @@
  check('Initial blank basic and total 450',get('aircraftWeight').value===''&&get('weight-preview').textContent==='450');
  check('Initial crew kg',get('crewKg').textContent==='（136.1 kg）');
  check('Initial values',get('crewWeight-value').textContent==='300'&&get('otherWeight-value').textContent==='0'&&get('oat-value').textContent==='20'&&get('fuelWeight-value').textContent==='150'&&get('pressureAltitude-value').textContent==='2,000');
- check('Single column order',get('preset-heading').getBoundingClientRect().top<get('departure-heading').getBoundingClientRect().top&&get('departure-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top&&get('result-heading').getBoundingClientRect().top<get('chart-view-heading').getBoundingClientRect().top);
+ check('Input, results, chart order',get('preset-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top&&get('result-heading').getBoundingClientRect().top<get('chart-view-heading').getBoundingClientRect().top);
  check('All inputs and total in first 844px',get('weight-preview').getBoundingClientRect().bottom<844);
  base(1600);check('Basic draft preview',get('weight-preview').textContent==='2,050'&&get('aircraftWeight-state').textContent==='未確定');
  get('confirm-base').click();check('Basic confirmed',get('aircraftWeight-state').textContent==='確定済');
@@ -31,6 +31,25 @@
  await pick('otherWeight',50);check('Other added',get('weight-preview').textContent==='2,120');
  await pick('crewWeight',300);await pick('otherWeight',0);
  const initial=dot();check('Image and red dot visible',initial.visible&&getComputedStyle(get('chart-dot')).backgroundColor==='rgb(227, 45, 50)');
+ const rotation=id=>get(id).firstElementChild.style.transform;
+ get('red-hex').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+ check('Pitch-link red rotates',rotation('red-hex')==='rotate(15deg)'&&rotation('blue-hex')==='rotate(0deg)');
+ get('chart-page-next').click();
+ check('Trim-tab starts independent with same dot',get('chart-page-title').textContent==='トリムタブ用'&&get('chart-page-count').textContent==='2 / 2'&&rotation('red-hex')==='rotate(0deg)'&&dot().x===initial.x&&dot().y===initial.y);
+ get('blue-hex').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+ get('chart-page-prev').click();
+ check('Pitch-link angles retained',get('chart-page-title').textContent==='ピッチリンク用'&&rotation('red-hex')==='rotate(15deg)'&&rotation('blue-hex')==='rotate(0deg)');
+ get('chart-page-next').click();
+ check('Trim-tab angles retained',rotation('red-hex')==='rotate(0deg)'&&rotation('blue-hex')==='rotate(15deg)');
+ get('chart-page-next').click();
+ check('Pages wrap repeatedly',get('chart-page-title').textContent==='ピッチリンク用'&&dot().x===initial.x&&dot().y===initial.y);
+ const swipe=(from,to)=>{
+  const touch=x=>new Touch({identifier:1,target:get('chart-frame'),clientX:x,clientY:400});
+  get('chart-frame').dispatchEvent(new TouchEvent('touchstart',{touches:[touch(from)],changedTouches:[touch(from)],bubbles:true}));
+  get('chart-frame').dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[touch(to)],bubbles:true}));
+ };
+ swipe(300,100);check('Swipe left opens trim-tab',get('chart-page-title').textContent==='トリムタブ用'&&rotation('blue-hex')==='rotate(15deg)');
+ swipe(100,300);check('Swipe right returns to pitch-link',get('chart-page-title').textContent==='ピッチリンク用'&&rotation('red-hex')==='rotate(15deg)'&&dot().x===initial.x&&dot().y===initial.y);
  base(1700);const right=dot();base(1500);const left=dot();base(1600);
  check('Weight moves horizontally',right.x>initial.x&&left.x<initial.x&&right.y===initial.y&&left.y===initial.y);
  await pick('oat',21);const hot=dot();await pick('oat',19);const cold=dot();await pick('oat',20);
