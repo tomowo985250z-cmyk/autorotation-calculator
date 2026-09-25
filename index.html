@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f6f8">
   <title>Autorotation Calculator</title>
-  <link rel="stylesheet" href="./style.css?v=result-units-1">
+  <link rel="stylesheet" href="./style.css?v=numeric-only-1">
   <script src="./calculator.js" defer></script>
-  <script src="./chart-view-config.js" defer></script>
-  <script src="./chart-view.js" defer></script>
+  <script src="./rpm-calibration.js" defer></script>
   <script src="./rpm-image-data.js" defer></script>
   <script src="./chart-data.js" defer></script>
   <script src="./input-model.js" defer></script>
-  <script src="./app.js?v=input-status-2" defer></script>
+  <script src="./app.js?v=numeric-only-1" defer></script>
 </head>
 <body>
   <header class="topbar"><h1>Autorotation Calculator</h1></header>
@@ -49,16 +48,7 @@
         <div class="metrics"><div><h3>総重量</h3><output id="totalWeight">450</output> <small>lb</small></div><div><h3>密度高度 <small>概算</small></h3><output id="densityAltitude">—</output> <small>ft</small></div></div>
       </div>
     </section>
-    <section class="panel chart-panel" aria-labelledby="chart-view-heading">
-      <div class="section-heading"><h2 id="chart-view-heading">チャート</h2></div>
-      <p class="input-note">横軸：総重量（lb）／縦軸：密度高度（ft）</p>
-      <div id="chart-frame" class="chart-frame" hidden>
-        <img id="performance-chart" alt="オートローテーション性能チャート" decoding="async">
-        <span id="chart-dot" class="chart-dot" aria-hidden="true" hidden></span>
-      </div>
-      <p id="chart-view-status" class="chart-view-status" role="status">チャート画像を読み込み中</p>
-    </section>
-    <details class="method"><summary>計算方法と注意事項</summary><p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p><p>機体重量の空欄は0 lb。決定前も計算に反映します。</p><p>総重量 = 機体重量 + 搭乗員重量 + 燃料重量 + その他。機体重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは赤点と同じ画像座標で左右の実測線を補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
+    <details class="method"><summary>計算方法と注意事項</summary><p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p><p>機体重量の空欄は0 lb。決定前も計算に反映します。</p><p>総重量 = 機体重量 + 搭乗員重量 + 燃料重量 + その他。機体重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは登録済みの数値データを補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
     <footer>Autorotation Calculator · 原典確認前</footer>
   </main>
   <dialog id="wheel-dialog" aria-labelledby="wheel-title" aria-describedby="wheel-help">

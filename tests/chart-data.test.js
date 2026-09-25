@@ -2,11 +2,11 @@
 (() => {
   'use strict';
   if (typeof require === 'function') {
-    require('../calculator.js'); require('../chart-view-config.js'); require('../chart-view.js');
+    require('../calculator.js'); require('../rpm-calibration.js');
     require('../rpm-image-data.js'); require('../chart-data.js');
   }
   const c=globalThis.AutorotationCalculator, chart=globalThis.AutorotationChart;
-  const config=globalThis.AutorotationChartViewConfig;
+  const config=globalThis.AutorotationRpmCalibration;
   let passed=0;
   function check(name, ok) { if(!ok) throw Error(name); passed++; }
   const near=(a,b)=>Math.abs(a-b)<1e-8;
@@ -77,7 +77,7 @@
   check('Image edge not extrapolated',c.rotorSpeed({grossWeightLb:2200,densityAltitudeFt:5000},chart).status==='out-of-range');
   check('Outside chart not extrapolated',c.rotorSpeed({grossWeightLb:2601,densityAltitudeFt:0},chart).status==='out-of-range');
   const precise={grossWeightLb:2200.123456789,densityAltitudeFt:123.456789};
-  const result=c.rotorSpeed(precise,chart),direct=globalThis.AutorotationChartView.project(precise,config);
+  const result=c.rotorSpeed(precise,chart),direct=globalThis.AutorotationRpmCoordinates.project(precise,config);
   check('Dot and lookup share transform',near(result.imagePoint.x,direct.leftPercent/100*750)&&near(result.imagePoint.y,direct.topPercent/100*1334));
   check('Raw point frozen',Object.isFrozen(result.point)&&result.point.grossWeightLb===precise.grossWeightLb&&result.point.densityAltitudeFt===precise.densityAltitudeFt);
   check('Incomplete point',c.rotorSpeed({densityAltitudeFt:null,grossWeightLb:2200},chart).point===null);

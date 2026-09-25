@@ -1,49 +1,28 @@
 # Autorotation Calculator
 
-スマートフォンに対応した、依存ライブラリ・ビルド不要の静的Webアプリです。`index.html` をブラウザーで開いて使用できます。
+依存ライブラリ・ビルド不要の静的Webアプリです。index.html をブラウザーで開いて使用できます。
 
-## 実装済み
+機体・搭乗員・燃料・その他の重量、気圧高度、外気温を入力し、総重量、密度高度、基準RPM、±5 RPM、参考境界判定を表示します。入力の確定・キャンセル・リセットと保存に対応しています。
 
-- 気圧高度（ft）・外気温（°C）から密度高度を概算
-- 機体・搭乗員・燃料重量（lb）の合計、搭乗員重量のkg換算
-- 入力時の自動更新、空欄・不正入力時の結果消去、入力クリア
-- 実チャートの算出アダプター接続口と、接続後の基準回転数 ±5 RPM表示
+## 公開ファイル
 
-実チャートは未登録です。機種、斜線、補間方法、適用範囲のデータは推測していません。回転数は未算出のままです。
+チャート画像・表示・描画コード・表示専用設定は削除しました。RPM計算に必要な数値データと校正処理は維持しています。
 
-## 計算
+- index.html / style.css：入力・結果画面
+- app.js / input-model.js：入力操作・保存・結果更新
+- calculator.js：重量・密度高度・RPM範囲の計算
+- rpm-calibration.js：RPM補間用の座標変換と校正値（画像URL・描画処理なし）
+- rpm-image-data.js：RPM計算・境界判定用の数値データ
+- chart-data.js：数値補間・参考境界判定
 
-ISA温度 = 15 − 1.98 × 気圧高度(ft) / 1000
+数値データはチャート画像からの暫定デジタイズ値・原典確認前です。既存の注意表示を維持しています。
 
-密度高度(ft) ≈ 気圧高度(ft) + 120 × (OAT(°C) − ISA温度)
+## 動作確認
 
-密度高度は湿度を含まない近似値です。[National Weather Serviceの説明](https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf)を参照。アプリ入力制限は気圧高度 −2000〜20000 ft、OAT −60〜60 °Cであり、運用可能範囲を示しません。機体重量は正、搭乗員・燃料重量は0以上。1 lb = 0.45359237 kg。表示は小数第1位まで、内部計算では表示丸め前の値を使用します。
+Windowsでは `powershell -NoProfile -ExecutionPolicy Bypass -File tests/browser-check.ps1` でEdgeを非表示起動し、計算回帰、入力操作、保存復元、画面幅を確認できます。
 
-## ファイル
-
-- `index.html`：画面と入力フォーム
-- `style.css`：レスポンシブ表示
-- `calculator.js`：DOMに依存しない基本計算・チャート呼び出し
-- `chart-data.js`：実チャートを登録する場所（初期値 `null`）
-- `app.js`：入力検証と結果更新
-
-## 実チャートの組み込み
-
-対象機種・型式・チャート改訂版・出典・軸の単位・適用条件を確定してから `chart-data.js` に `globalThis.AutorotationChart` を登録します。
-
-アダプターは同期関数 `lookup({ densityAltitudeFt, grossWeightLb })` を提供してください。実チャートに従って位置と斜めの基準線を評価し、次のいずれかを返します。
-
-- 適用範囲内：`{ status: 'ok', referenceRpm }`（有限の数値、単位RPM）
-- 適用範囲外：`{ status: 'out-of-range' }`
-
-チャートが%表示の場合は、その機種の根拠ある換算をアダプター内で行ってください。実際の斜線形状・境界・不規則な適用領域に応じて算出を実装し、外挿や境界への丸め込みは行わないでください。汎用の線形補間が適切とは仮定していません。出典などのメタデータをアダプターに保管し、登録待ちの画面文言も実データに合わせて更新してください。
-
-`calculator.js` が±5 RPMを適用します。未登録、不完全入力、範囲外、例外、不正な戻り値では数値を表示しません。実チャート導入時は、既知の読取点、斜線上、斜線間、境界、範囲外を実チャートと照合してください。現段階では飛行判断に使用できません。
+Node.jsがある場合は `node tests/chart-data.test.js`、`node tests/input-model.test.js`、`node tests/input-storage.test.js` でも確認できます。
 
 ## GitHub Pages
 
-1. このフォルダーのファイルをGitHubリポジトリのルートにコミット・プッシュします。
-2. リポジトリの Settings → Pages で「Deploy from a branch」を選択します。
-3. 公開対象ブランチと `/ (root)` を選んで保存します。
-
-すべて相対パスなのでプロジェクト配下のPages URLでも動作します。サーバー処理・APIキー・npmインストールは不要です。
+Settings → Pages で公開ブランチと `/ (root)` を選択します。相対パスのみを使用し、サーバー処理・APIキー・npmインストールは不要です。
