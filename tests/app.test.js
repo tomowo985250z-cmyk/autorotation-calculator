@@ -3,7 +3,6 @@
  const get=id=>document.getElementById(id), checks=[];
  const check=(name,ok)=>{if(!ok)throw Error(name);checks.push(name);};
  const wait=()=>new Promise(r=>setTimeout(r,100));
- for(let i=0;i<100&&!get('performance-chart')?.naturalWidth;i++)await wait();
  const base=v=>{get('aircraftWeight').value=String(v);get('aircraftWeight').dispatchEvent(new Event('input',{bubbles:true}));};
  async function pick(key,value,confirm=true){
   get(key+'-trigger').click();
@@ -12,11 +11,11 @@
   get('value-wheel').children[i].click();await wait();
   if(confirm)get('confirm-wheel').click();
  }
- const dot=()=>({x:parseFloat(get('chart-dot').style.left),y:parseFloat(get('chart-dot').style.top),visible:!get('chart-dot').hidden});
  check('Initial blank basic and total 450',get('aircraftWeight').value===''&&get('weight-preview').textContent==='450');
  check('Initial crew kg',get('crewKg').textContent==='（136.1 kg）');
  check('Initial values',get('crewWeight-value').textContent==='300'&&get('otherWeight-value').textContent==='0'&&get('oat-value').textContent==='20'&&get('fuelWeight-value').textContent==='150'&&get('pressureAltitude-value').textContent==='2,000');
- check('Single column order',get('preset-heading').getBoundingClientRect().top<get('departure-heading').getBoundingClientRect().top&&get('departure-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top&&get('result-heading').getBoundingClientRect().top<get('chart-view-heading').getBoundingClientRect().top);
+ check('Input before results',get('preset-heading').getBoundingClientRect().top<get('result-heading').getBoundingClientRect().top);
+ check('Chart display removed',!document.querySelector('img,.chart-panel,#chart-dot')&&!globalThis.AutorotationChartView);
  check('All inputs and total in first 844px',get('weight-preview').getBoundingClientRect().bottom<844);
  base(1600);check('Basic draft preview',get('weight-preview').textContent==='2,050'&&get('aircraftWeight-state').textContent==='未確定');
  get('confirm-base').click();check('Basic confirmed',get('aircraftWeight-state').textContent==='確定済');
@@ -30,14 +29,6 @@
  check('Cancel restores confirmed status',get('crewWeight-state').textContent==='確定済'&&get('crewWeight-value').textContent==='320');
  await pick('otherWeight',50);check('Other added',get('weight-preview').textContent==='2,120');
  await pick('crewWeight',300);await pick('otherWeight',0);
- const initial=dot();check('Image and red dot visible',initial.visible&&getComputedStyle(get('chart-dot')).backgroundColor==='rgb(227, 45, 50)');
- base(1700);const right=dot();base(1500);const left=dot();base(1600);
- check('Weight moves horizontally',right.x>initial.x&&left.x<initial.x&&right.y===initial.y&&left.y===initial.y);
- await pick('oat',21);const hot=dot();await pick('oat',19);const cold=dot();await pick('oat',20);
- check('OAT moves vertically',hot.y<initial.y&&cold.y>initial.y&&hot.x===initial.x&&cold.x===initial.x);
- await pick('pressureAltitude',1500);const lower=dot();await pick('pressureAltitude',2000);
- check('Pressure altitude moves vertically',lower.y>initial.y&&lower.x===initial.x);
- check('Same inputs same dot',dot().x===initial.x&&dot().y===initial.y);
  get('crewWeight-trigger').click();get('value-wheel').scrollTop=0;await wait();
  check('Scroll updates kg at crew minimum',get('wheel-selection-value').textContent==='250 lb（113.4 kg）'&&get('crewKg').textContent==='（113.4 kg）');
  get('cancel-wheel').click();
@@ -52,14 +43,14 @@
  const point={grossWeightLb:2508,densityAltitudeFt:AutorotationCalculator.densityAltitude(1000,5)};
  const expected=AutorotationCalculator.rotorSpeed(point,AutorotationChart);
  const fmt=v=>new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(v);
- check('Above385 still shows RPM range and dot',expected.referenceRpm>385&&dot().visible&&get('referenceRpm').textContent===fmt(expected.referenceRpm)&&get('rpmRange').textContent===fmt(expected.minRpm)+' ～ '+fmt(expected.maxRpm)&&get('boundary-status').textContent==='385 RPM MAXIMUM超過');
- base(1450);check('Below series keeps dot and warning',dot().visible&&get('referenceRpm').textContent==='—'&&get('boundary-status').textContent==='332 RPM MINIMUM未満');
+ check('Above385 still shows RPM range',expected.referenceRpm>385&&get('referenceRpm').textContent===fmt(expected.referenceRpm)&&get('rpmRange').textContent===fmt(expected.minRpm)+' ～ '+fmt(expected.maxRpm)&&get('boundary-status').textContent==='385 RPM MAXIMUM超過');
+ base(1450);check('Below series keeps warning',get('referenceRpm').textContent==='—'&&get('boundary-status').textContent==='332 RPM MINIMUM未満');
  const original=globalThis.AutorotationChart;
  globalThis.AutorotationChart={lookup:()=>({status:'ok',referenceRpm:330}),checkBoundaries:original.checkBoundaries};
  base(1450);check('Future below332 value remains visible',get('referenceRpm').textContent==='330'&&get('rpmRange').textContent==='325 ～ 335');
  globalThis.AutorotationChart=original;
- base(2200);check('Outside chart hides without clipping',!dot().visible&&get('chart-dot').style.left===''&&get('chart-view-status').textContent==='チャート表示範囲外');
- base(1600);await pick('pressureAltitude',2000);await pick('oat',40);check('Outside altitude hides dot',!dot().visible&&get('chart-view-status').textContent==='チャート表示範囲外');
+ base(2200);check('Outside range clears RPM',get('referenceRpm').textContent==='—');
+ base(1600);await pick('pressureAltitude',2000);await pick('oat',40);check('Outside altitude clears RPM',get('referenceRpm').textContent==='—');
  base(-1);check('Invalid basic clears stale RPM',get('referenceRpm').textContent==='—'&&get('boundary-status').textContent==='入力待ち'&&get('aircraftWeight').getAttribute('aria-invalid')==='true');
  check('Original notice preserved',document.querySelector('.data-note').textContent.includes('チャート画像からの暫定デジタイズ値・原典確認前'));
  get('reset-inputs').click();check('Reset returns all defaults',get('weight-preview').textContent==='450'&&get('oat-value').textContent==='20'&&get('pressureAltitude-value').textContent==='2,000');

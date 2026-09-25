@@ -38,6 +38,12 @@ try {
     $target = $targets | Where-Object type -eq 'page' | Select-Object -First 1
     $socket.ConnectAsync([Uri]$target.webSocketDebuggerUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult() | Out-Null
     Invoke-Cdp 'Emulation.setDeviceMetricsOverride' @{width=390;height=844;deviceScaleFactor=1;mobile=$false} | Out-Null
+    foreach ($test in @('chart-data.test.js','input-model.test.js','input-storage.test.js')) {
+        $source = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $test))
+        $result = Invoke-Cdp 'Runtime.evaluate' @{expression="(()=>{const require=()=>{}; $source })()";returnByValue=$true}
+        if ($result.exceptionDetails) { throw ($result.exceptionDetails | ConvertTo-Json -Depth 10) }
+        Write-Output "PASS: $test"
+    }
     $expression = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'app.test.js'))
     $evaluation = Invoke-Cdp 'Runtime.evaluate' @{expression=$expression;awaitPromise=$true;returnByValue=$true}
     if ($evaluation.exceptionDetails) { throw ($evaluation.exceptionDetails | ConvertTo-Json -Depth 10) }
@@ -57,15 +63,6 @@ try {
     if (-not $narrow.result.value) { throw '320px horizontal overflow' }
     Write-Output '320px width: no horizontal overflow'
     Invoke-Cdp 'Emulation.setDeviceMetricsOverride' @{width=390;height=844;deviceScaleFactor=1;mobile=$false} | Out-Null
-    $mobile = Invoke-Cdp 'Runtime.evaluate' @{expression="new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { const d=document.getElementById('chart-dot'),i=document.getElementById('performance-chart');d.scrollIntoView({block:'center'});const r=d.getBoundingClientRect(),s=i.getBoundingClientRect();resolve({visible:!d.hidden,dx:Math.abs(r.left+r.width/2-s.left-parseFloat(d.style.left)/100*s.width),dy:Math.abs(r.top+r.height/2-s.top-parseFloat(d.style.top)/100*s.height)}); })))";awaitPromise=$true;returnByValue=$true}
-    if ($mobile.exceptionDetails) { throw 'Mobile evaluation failed' }
-    $position = $mobile.result.value
-    if (-not $position.visible -or $position.dx -ge 1 -or $position.dy -ge 1) { throw 'Mobile dot alignment failed' }
-    Write-Output "Mobile alignment PASS: dx=$($position.dx), dy=$($position.dy) px"
-    $screenshot = Invoke-Cdp 'Page.captureScreenshot' @{format='png';captureBeyondViewport=$false}
-    $mobilePath = Join-Path $profilePath 'mobile.png'
-    [IO.File]::WriteAllBytes($mobilePath, [Convert]::FromBase64String($screenshot.data))
-    Write-Output "Mobile screenshot: $mobilePath"
     function Eval-Storage($expression) {
         $r = Invoke-Cdp 'Runtime.evaluate' @{expression=$expression;awaitPromise=$true;returnByValue=$true}
         if ($r.exceptionDetails) { throw ($r.exceptionDetails | ConvertTo-Json -Depth 10) }

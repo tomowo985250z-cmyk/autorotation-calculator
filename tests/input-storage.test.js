@@ -1,7 +1,7 @@
 /* node tests/input-storage.test.js */
 (() => {
   require('../calculator.js'); require('../input-model.js');
-  require('../chart-view-config.js'); require('../chart-view.js');
+  require('../rpm-calibration.js');
   require('../rpm-image-data.js'); require('../chart-data.js');
   const c=AutorotationCalculator, {create,storageKey}=AutorotationInputs;
   let passed=0;

@@ -1,3 +1,24 @@
+/* Measured dark grid-line centers in autorotation-chart.png (750 x 1334).
+ * Coordinates are original-image pixels from the upper-left, not label margins.
+ * Raster lines are 1–3 px wide; centers have approximately ±1.5 px reading precision.
+ * Tick calibration preserves the slightly uneven grid spacing in this image.
+ */
+const rpmTicks = pairs => Object.freeze(pairs.map(([value, pixel]) => Object.freeze({ value, pixel })));
+globalThis.AutorotationRpmCalibration = Object.freeze({
+  image: Object.freeze({ width: 750, height: 1334 }),
+  plot: Object.freeze({ left: 90.5, right: 713.5, top: 125, bottom: 1210.5 }),
+  axes: Object.freeze({
+    grossWeightLb: Object.freeze({ left: 1700, right: 2600,
+      ticks: rpmTicks([[1700,90.5],[1800,154.5],[1900,221],[2000,291.5],
+        [2100,363],[2200,437.5],[2300,509],[2400,576.5],[2500,646.5],[2600,713.5]]) }),
+    densityAltitudeFt: Object.freeze({ top: 5000, bottom: -3000,
+      ticks: rpmTicks([[5000,125],[4500,193.5],[4000,260],[3500,327],
+        [3000,396.5],[2500,465],[2000,535.5],[1500,602.5],[1000,668],
+        [500,734.5],[0,803],[-500,869.5],[-1000,939.5],[-1500,1007.5],
+        [-2000,1075],[-2500,1142],[-3000,1210.5]]) })
+  })
+});
+
 (() => {
   'use strict';
   function validTicks(ticks, startValue, endValue, startPixel, endPixel) {
@@ -43,41 +64,5 @@
       leftPercent: calibratedPixel(point.grossWeightLb, axes.grossWeightLb.ticks, plot.left + x * (plot.right - plot.left)) / image.width * 100,
       topPercent: calibratedPixel(point.densityAltitudeFt, axes.densityAltitudeFt.ticks, plot.top + y * (plot.bottom - plot.top)) / image.height * 100 };
   }
-  function create({ image, dot, status, frame }, config) {
-    let point = null, loaded = false, failed = false;
-    const src = config?.image?.src;
-    function render() {
-      dot.hidden = true;
-      dot.style.left = '';
-      dot.style.top = '';
-      if (!src) { status.textContent = 'チャート画像未登録・プロット領域未設定'; return; }
-      if (failed) { status.textContent = 'チャート画像を読み込めません'; return; }
-      if (!loaded) { status.textContent = 'チャート画像を読み込み中'; return; }
-      if (!validCalibration(config)) { status.textContent = 'プロット領域・軸範囲未設定：ドットは表示しません'; return; }
-      if (image.naturalWidth !== config.image.width || image.naturalHeight !== config.image.height) {
-        status.textContent = '画像サイズが設定と一致しません：ドットは表示しません'; return;
-      }
-      const projected = project(point, config);
-      if (projected.status !== 'ok') {
-        status.textContent = projected.status === 'out-of-range' ? 'チャート表示範囲外' : '計算条件を入力してください'; return;
-      }
-      dot.style.left = `${projected.leftPercent}%`;
-      dot.style.top = `${projected.topPercent}%`;
-      dot.hidden = false;
-      status.textContent = '赤いドット：現在の計算点（原典確認前）';
-    }
-    image.addEventListener('load', () => { loaded = image.naturalWidth > 0; failed = !loaded; render(); });
-    image.addEventListener('error', () => { loaded = false; failed = true; render(); });
-    frame.hidden = !src;
-    if (src) {
-      image.src = src;
-      if (image.complete && image.naturalWidth > 0) loaded = true;
-    }
-    render();
-    return Object.freeze({ update(nextPoint) {
-      point = nextPoint ? { densityAltitudeFt: nextPoint.densityAltitudeFt, grossWeightLb: nextPoint.grossWeightLb } : null;
-      render();
-    } });
-  }
-  globalThis.AutorotationChartView = Object.freeze({ project, create });
+  globalThis.AutorotationRpmCoordinates = Object.freeze({ project });
 })();

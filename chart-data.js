@@ -1,4 +1,4 @@
-/* Image-space RPM interpolation. Uses exactly the same project() as the red dot.
+/* Image-space RPM interpolation. Uses the retained numerical calibration.
  * 332 is a measured lower reference as well as an advisory minimum.
  * 385 MAXIMUM is warning-only; RPM interpolation goes directly from 380 to 390.
  */
@@ -19,9 +19,9 @@
     return null;
   }
   function imagePointFor(point) {
-    const config = globalThis.AutorotationChartViewConfig;
+    const config = globalThis.AutorotationRpmCalibration;
     if (config?.image?.width !== data.width || config?.image?.height !== data.height) return null;
-    const projected = globalThis.AutorotationChartView?.project(point, config);
+    const projected = globalThis.AutorotationRpmCoordinates?.project(point, config);
     if (projected?.status !== 'ok') return null;
     return Object.freeze({ x: projected.leftPercent / 100 * data.width, y: projected.topPercent / 100 * data.height });
   }

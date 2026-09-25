@@ -5,7 +5,6 @@ const {fields,create}=globalThis.AutorotationInputs;
 let storage=null;
 try { storage=globalThis.localStorage; } catch { /* Browser storage may be disabled. */ }
 const model=create(calculator,storage);
-const chartView=globalThis.AutorotationChartView.create({image:get('performance-chart'),dot:get('chart-dot'),status:get('chart-view-status'),frame:get('chart-frame')},globalThis.AutorotationChartViewConfig);
 const format=v=>new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(v);
 const crewKg=lb=>'（'+calculator.lbToKg(lb).toFixed(1)+' kg）';
 const display=(id,v)=>{get(id).textContent=v;};
@@ -25,13 +24,12 @@ function render(){
  }
  display('crewKg',crewKg(s.values.crewWeight));
  const r=calculator.rotorSpeed({densityAltitudeFt:s.densityAltitude,grossWeightLb:s.error?null:s.totalWeight},globalThis.AutorotationChart);
- chartView.update(r.point);
  display('referenceRpm',r.status==='ok'?format(r.referenceRpm):'—');
  display('rpmRange',r.status==='ok'?format(r.minRpm)+' ～ '+format(r.maxRpm):'未算出');
  const messages={
- ok:['暫定算出','赤点と同じ画像座標で左右のRPM線を補間した基準値と±5 RPMです。参考境界を超えても数値を制限・補正しません。'],
+ ok:['暫定算出','登録済みの数値データを補間した基準値と±5 RPMです。参考境界を超えても数値を制限・補正しません。'],
  incomplete:['入力待ち','基本重量の入力値を確認してください。'],
- 'out-of-range':['補間データ範囲外','画像上で確認できたRPM線の間だけを補間します。外挿せず、計算点と参考境界の判定を保持します。'],
+ 'out-of-range':['補間データ範囲外','登録済みの数値データの範囲内だけを補間します。外挿せず、参考境界の判定を保持します。'],
  unavailable:['チャート未登録','実チャートのデータが未登録です。'],
  error:['算出エラー','チャートデータまたは算出処理を確認してください。']};
  display('chart-badge',messages[r.status][0]);display('chart-status',messages[r.status][1]);
