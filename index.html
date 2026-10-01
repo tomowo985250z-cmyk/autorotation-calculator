@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f6f8">
   <title>Autorotation Calculator</title>
-  <link rel="stylesheet" href="./style.css?v=numeric-only-1">
+  <link rel="stylesheet" href="./style.css?v=footer-notice-1">
   <script src="./calculator.js" defer></script>
   <script src="./rpm-calibration.js" defer></script>
   <script src="./rpm-image-data.js" defer></script>
@@ -49,7 +49,9 @@
       </div>
     </section>
     <details class="method"><summary>計算方法と注意事項</summary><p class="data-note"><strong>チャート画像からの暫定デジタイズ値・原典確認前</strong>境界警告は参考表示です。基準RPMと±5 RPMは境界で制限しません。</p><p>機体重量の空欄は0 lb。決定前も計算に反映します。</p><p>総重量 = 機体重量 + 搭乗員重量 + 燃料重量 + その他。機体重量には、ほかの3項目に入力する重量を重複して含めないでください。</p><p>ISA温度（℃）= 15 − 1.98 × 気圧高度（ft）÷ 1,000<br>密度高度（ft）≈ 気圧高度 + 120 ×（OAT − ISA温度）</p><p>密度高度は湿度を考慮しない近似値です。RPMは登録済みの数値データを補間します。確認できた線の外側へは外挿しません。原典確認前のため、飛行判断に使用できません。</p><a href="https://www.weather.gov/media/zhu/ZHU_Training_Page/winds/pressure_winds/Temp_Density_Pressure.pdf" target="_blank" rel="noopener noreferrer">密度高度の近似式：National Weather Service ↗</a></details>
-    <footer>Autorotation Calculator · 原典確認前</footer>
+    <footer>Autorotation Calculator · 原典確認前
+      <details class="footer-notice"><summary>注意事項</summary><p>本ツールは参考用です。運航・整備上の最終判断は、適用される正式な資料・手順に従ってください。</p></details>
+    </footer>
   </main>
   <dialog id="wheel-dialog" aria-labelledby="wheel-title" aria-describedby="wheel-help">
     <div class="dialog-heading"><h2 id="wheel-title">値を選択</h2><p id="wheel-help">上下にスワイプして選択</p></div>
