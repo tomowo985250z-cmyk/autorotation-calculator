@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f8">
+  <title>Power Assurance Check</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./chart-data.js" defer></script>
+  <script src="./calculator.js" defer></script>
+  <script src="./app.js?v=tot-colors-2" defer></script>
+  <script src="./picker.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><div><h1>Power Assurance Check</h1><a href="../">Autorotation</a></div></header>
+  <main>
+    <section class="panel" aria-labelledby="input-heading">
+      <div class="section-heading"><h2 id="input-heading">入力</h2><button id="reset" type="button">リセット</button></div>
+      <form id="conditions" class="measurement-grid" novalidate>
+        <input id="pressureAltitude" type="hidden" value="330">
+        <button id="pressureAltitude-trigger" class="field wheel-card" type="button" data-picker="pressureAltitude" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="pressureAltitude-state"><span class="field-name">気圧高度</span><span id="pressureAltitude-state" class="state-label">未確定</span><span class="field-value"><output id="pressureAltitude-value">330</output><small>ft</small></span></button>
+        <input id="oat" type="hidden" value="20">
+        <button id="oat-trigger" class="field wheel-card" type="button" data-picker="oat" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="oat-state"><span class="field-name">OAT</span><span id="oat-state" class="state-label">未確定</span><span class="field-value"><output id="oat-value">20</output><small>℃</small></span></button>
+        <input id="torque" type="hidden" value="50">
+        <button id="torque-trigger" class="field wheel-card" type="button" data-picker="torque" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="torque-state"><span class="field-name">トルク</span><span id="torque-state" class="state-label">未確定</span><span class="field-value"><output id="torque-value">50</output><small>PSI</small></span></button>
+        <input id="actualTot" type="hidden" value="500">
+        <button id="actualTot-trigger" class="field wheel-card" type="button" data-picker="actualTot" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="actualTot-state"><span class="field-name">実測TOT</span><span id="actualTot-state" class="state-label">未確定</span><span class="field-value"><output id="actualTot-value">500</output><small>℃</small></span></button>
+        <input id="n1" type="hidden" value="90">
+        <button id="n1-trigger" class="field wheel-card" type="button" data-picker="n1" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="n1-state"><span class="field-name">N1</span><span id="n1-state" class="state-label">未確定</span><span class="field-value"><output id="n1-value">90</output><small>%</small></span></button>
+        <input id="bleedValve" type="hidden" value="unconfirmed">
+        <button id="bleedValve-trigger" class="field wheel-card" type="button" data-picker="bleedValve" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="bleedValve-state"><span class="field-name">ブリード<br>バルブ</span><span id="bleedValve-state" class="state-label">未確定</span><span class="field-value"><output id="bleedValve-value">未確認</output><small></small></span></button>
+      </form>
+      <p id="n1-note" class="field-note" role="status"></p>
+      <p id="n1-reference" class="field-note">N1 94%は暫定参考値です。全閉条件は気圧高度・OATで変わり、N1だけでは全閉・未閉を断定できません。</p>
+    </section>
+    <section id="results" class="panel results" aria-labelledby="result-heading" data-inputs-confirmed="false">
+      <div class="section-heading"><h2 id="result-heading">計算結果</h2><span id="assessment-label" class="badge" data-tone="neutral">参考値・判定保留</span></div>
+      <div aria-live="polite" aria-atomic="true">
+        <div class="result-grid"><div><h3>チャートTOT</h3><p class="chart-value"><output id="chart-tot">—</output> <small>℃</small></p></div><div><h3>実測TOT</h3><p class="actual-value"><output id="actual-tot">—</output> <small>℃</small></p></div><div><h3>TOT差分 <small>Chart − Actual</small></h3><p class="margin-value"><output id="margin" data-tone="neutral">—</output> <small>℃</small></p></div></div>
+        <p id="calculation-status" class="status"></p>
+        <p id="condition-status" class="condition-status neutral"></p>
+      </div>
+      <p class="field-note">回転数・安定状態・ブリード条件は適用手順で確認してください。</p>
+    </section>
+    <footer>適用範囲未確認。正式な整備判定には使用できません。</footer>
+    <noscript><p class="field-note">計算にはJavaScriptが必要です。</p></noscript>
+  </main>
+  <dialog id="wheel-dialog" aria-labelledby="wheel-title" aria-describedby="wheel-help">
+    <div class="dialog-heading"><h2 id="wheel-title">値を選択</h2><p id="wheel-help">上下にスワイプして選択</p></div>
+    <div class="wheel-window"><div class="wheel-selection" aria-hidden="true"></div><div id="value-wheel" class="value-wheel" role="listbox" tabindex="0" aria-labelledby="wheel-title"></div></div>
+    <p id="wheel-selection-value" class="wheel-current" aria-live="polite"></p>
+    <div class="dialog-actions"><button id="cancel-wheel" type="button">キャンセル</button><button id="confirm-wheel" type="button">決定</button></div>
+  </dialog>
+</body>
+</html>
