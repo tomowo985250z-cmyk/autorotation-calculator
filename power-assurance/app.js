@@ -28,6 +28,7 @@
       get(id+'-trigger').classList.toggle('confirmed',confirmed[id]);
     }
     const input=Object.fromEntries(Object.keys(fields).map(id=>[id,get(id).value]));
+    get('bleedValve-trigger').dataset.valveState=input.bleedValve;
     const result=calculator.calculate(input), all=Object.keys(fields).every(id=>confirmed[id]&&valid(id));
     get('chart-tot').textContent=format(result.chartTotC);
     get('actual-tot').textContent=format(result.actualTotC);
@@ -43,6 +44,7 @@
       ? '登録データの範囲外です。外挿は行いません。' : '入力値を確認してください。';
     get('calculation-status').textContent=(all?'全入力確定済み（参考値）。':'未確定の入力があります。')+error;
     const n1=Number(input.n1), low=n1<94;
+    get('n1-trigger').dataset.tone=confirmed.n1&&valid('n1') ? (low?'caution':'success') : 'neutral';
     get('n1-note').textContent=low
       ? 'N1は暫定参考帯未満です。全閉・未閉は断定できません。'
       : 'N1は暫定参考帯以上です。ただし、全閉は断定できません。';

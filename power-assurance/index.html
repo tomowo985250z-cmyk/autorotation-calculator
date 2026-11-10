@@ -31,7 +31,6 @@
         <button id="bleedValve-trigger" class="field wheel-card" type="button" data-picker="bleedValve" aria-haspopup="dialog" aria-controls="wheel-dialog" aria-describedby="bleedValve-state"><span class="field-name">ブリード<br>バルブ</span><span id="bleedValve-state" class="state-label">未確定</span><span class="field-value"><output id="bleedValve-value">未確認</output><small></small></span></button>
       </form>
       <p id="n1-note" class="field-note" role="status"></p>
-      <p id="n1-reference" class="field-note">N1 94%は暫定参考値です。全閉条件は気圧高度・OATで変わり、N1だけでは全閉・未閉を断定できません。</p>
     </section>
     <section id="results" class="panel results" aria-labelledby="result-heading" data-inputs-confirmed="false">
       <div class="section-heading"><h2 id="result-heading">計算結果</h2><span id="assessment-label" class="badge" data-tone="neutral">参考値・判定保留</span></div>
@@ -42,6 +41,11 @@
       </div>
       <p class="field-note">回転数・安定状態・ブリード条件は適用手順で確認してください。</p>
     </section>
+    <aside class="reference-note" role="note" aria-label="参考表示について">
+      <p><strong>参考・学習用。</strong>正式な整備判断・合否判定には使用禁止です。</p>
+      <p>N1・TOT差分・色分けは参考表示で、正式な合否やブリードバルブ状態を判定しません。N1 94%は出典・適用範囲未確認の暫定値です。</p>
+      <p>数値データの出典・適用機種・計算根拠は未確認です。特定の機種・エンジンへの適用を保証しません。</p>
+    </aside>
     <footer>適用範囲未確認。正式な整備判定には使用できません。</footer>
     <noscript><p class="field-note">計算にはJavaScriptが必要です。</p></noscript>
   </main>
